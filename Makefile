@@ -68,12 +68,12 @@ FIRST_OBJS = ./$(METAKAPPAREP)tools/map2.cmo \
 	./$(METAKAPPAREP)data_structures/data_structures_metakappa.cmo \
 	./$(METAKAPPAREP)lib/superarg.cmo \
 	./$(METAKAPPAREP)lib/$(TKREP)/superargTk.cmo \
-	./$(METAKAPPAREP)macro_processing/macro_processing.cmo \
 	./$(METAKAPPAREP)config/config_metakappa.cmo \
 	./$(METAKAPPAREP)tools/exceptions.cmo \
 	./$(METAKAPPAREP)tools/error_handler_common.cmo \
 	./$(METAKAPPAREP)tools/error.cmo \
 	./$(METAKAPPAREP)tools/error_handler.cmo \
+	./$(METAKAPPAREP)macro_processing/macro_processing.cmo \
 	./$(METAKAPPAREP)pretty_printing/pretty_printing.cmo \
 	./$(METAKAPPAREP)agent_interfaces/agent_interfaces.cmo \
 	./$(METAKAPPAREP)agent_tree/agent_tree.cmo \

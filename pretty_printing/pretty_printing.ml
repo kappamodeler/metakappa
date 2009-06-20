@@ -1,3 +1,10 @@
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Backend: prtty printing functions*)
+(* pretty_printing.ml *)
+
 open Data_structures_metakappa
 
 let print_agent log a = 
@@ -42,6 +49,7 @@ let print_rule log rule =
   () 
 
 let print_model log model = 
+  let _ = Printf.fprintf log "%s" Config_metakappa.head in 
   List.iter 
     (fun line -> 
       match line with 
@@ -50,6 +58,7 @@ let print_model log model =
       | GEN_L ((_,_,_,_,s),_) -> Printf.fprintf log "%s" s
       | CONC_L ((_,_,_,_,s),_) -> Printf.fprintf log "%s" s
       | RULE_L _ -> ()
+      | COMMENTED_RULE_L (y,_) -> Printf.fprintf log "#";print_rule log y 
       | PREPROCESSED_RULE (_,y,_) -> print_rule log  y
       |	OBS_L (x,_,_) -> Printf.fprintf log "%sobs: '%s'\n" "%" x
       |	STORY_L (x,_,_) -> Printf.fprintf log "%sstory:  '%s'\n" "%" x)

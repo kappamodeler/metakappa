@@ -1,4 +1,19 @@
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Macro processing module *)
+(* macro_processing.ml *)
+
+open Error_handler 
 open Data_structures_metakappa 
+
+(* report an error at line i*)
+let error i = 
+  let _ = print_string (string_of_int i) in 
+  let _ = print_newline () in 
+  unsafe_frozen None (Some "macro_processing.ml") None (Some ("line "^(string_of_int i))) (fun () -> failwith ("error"^(string_of_int i)))
+
 
 let id = (fun x -> x)
 
@@ -54,25 +69,23 @@ let print_def handler def =
 let get_macro_var rule = 
   let sol  = ref String2Set.empty in 
     match rule with 
-      PP_INIT_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_DONT_CARE_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_OBS_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-
-    | PP_STORY_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_GEN_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_CONC_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_RULE_L (x,_) ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-    | PP_PREPROCESSED_RULE (x,_) ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in (fst x)) in !sol 
-    | PP_CMAC_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
-
-
-      
+	PP_EMAC_L _ | PP_BMAC_L _ -> error 72 
+      | PP_INIT_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_DONT_CARE_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_OBS_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_STORY_L (x,_) -> let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_GEN_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_CONC_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_RULE_L (x,_) ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol 
+      | PP_PREPROCESSED_RULE (x,_) ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in (fst x)) in !sol 
+      | PP_CMAC_L (x,_)  ->  let _ = x (fun x -> let _ = sol:= String2Set.add x (!sol) in fst x) in !sol
 
 let get_subs varset int arg  = 
   let map = 
     let rec scan l1 l2 map = 
       match l1,l2 with [],[] -> map
       |	t1::q1,t2::q2 -> scan q1 q2 (StringMap.add t1 t2 map)
+      | _ -> error 88 
     in scan int arg StringMap.empty 
   in
   String2Set.fold 
@@ -118,6 +131,8 @@ let rec macro_expanse calling_stack def f tag l sol =
 	  | PP_CONC_L (x,i) -> CONC_L(x f,i)::sol
 	  | PP_RULE_L (x,i) -> RULE_L(extend_flag (x f) calling_stack tag,i)::sol
 	  | PP_PREPROCESSED_RULE (x,i) -> PREPROCESSED_RULE(let a,b = x f in a,b,i)::sol
+	  | PP_EMAC_L _ | PP_BMAC_L _ -> 
+	      error 129 
 	  | PP_CMAC_L (cont,i) -> 
 	      let rec call (x,arg,string) sol calling_stack = 
 		try 

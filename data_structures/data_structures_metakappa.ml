@@ -1,10 +1,10 @@
-(* 2009/01/08*)
+(* 2009/06/20*)
 (* Meta language for Kappa *)
-(* Jerome Feret*)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
 (* Data structures *)
 (* data_structures_metaplx.ml *)
 
-(*open Data_structures*) 
 
 type line = int
 
@@ -40,6 +40,7 @@ let print_handler =
    line=print_newline;
    site=print_string;
    agent=print_string}
+
 
 type concrete_interface = SiteSet.t
 
@@ -86,14 +87,15 @@ type agent_definition =
 
 let print_agent_def print_string x = 
   match x with 
-    Root x -> (print_string.string "ROOT: ";
-	       print_interface print_string x)
-  | Variant (a,actl) -> 
-      (print_string.string "VARIANT: ";print_string.agent a;print_string.string " ";List.iter (print_action print_string) actl)
+      Root x -> (print_string.string "ROOT: ";
+		 print_interface print_string x)
+    | Unspecified -> ()
+    | Variant (a,actl) -> 
+	(print_string.string "VARIANT: ";print_string.agent a;print_string.string " ";List.iter (print_action print_string) actl)
 
 type declaration = 
     { concrete_names: (concrete_interface option*line list) AgentMap.t;
-      definitions: (agent_definition*line option) AgentMap.t; 
+      definitions: ((agent_definition*line option) list) AgentMap.t; 
       agents: AgentSet.t } 
 
 let print_declaration print_string x = 
@@ -110,11 +112,15 @@ let print_declaration print_string x =
   in
   let _ = 
     AgentMap.iter 
-      (fun ag (a,b) -> 
+      (fun ag l  -> 
 	print_string.string "VARIANT: ";
 	print_string.agent ag;
 	print_string.string ": ";
-	print_agent_def  print_string a;
+	List.iter 
+	  (fun (a,_) -> 
+	     print_agent_def  print_string a;
+	     print_newline ())
+	  l;
 	print_string.line ()
 	)
       x.definitions 
@@ -159,6 +165,7 @@ type parse = INIT_L of  (parsed_agent list *string*int)
   | GEN_L of (parsed_gen*int)
   | CONC_L of (parsed_conc*int)
   | RULE_L of (parsed_rule*int) 
+  | COMMENTED_RULE_L of (string rule_metaplx*int)
   | PREPROCESSED_RULE of (parsed_rule * string rule_metaplx*int)
 
 

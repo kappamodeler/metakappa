@@ -1,3 +1,10 @@
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Apply substitutions to rules*)
+(* rename_rule.ml *)
+
 open Data_structures_metakappa
 open Rename_agent 
 
@@ -153,6 +160,7 @@ let check_model line (interface_database:declaration) =
   | STORY_L _ 
   | DONT_CARE_L _ 
   | GEN_L _ 
+  | COMMENTED_RULE_L _ 
   | CONC_L _ -> interface_database
   | RULE_L _ -> failwith "INTERNAL ERROR"
   | PREPROCESSED_RULE (_,y,i) -> check_rule y interface_database i 
@@ -164,18 +172,19 @@ let transform_model line interface_database (tail,flagset) =
   | STORY_L _ 
   | DONT_CARE_L _ 
   | GEN_L _ 
+  | COMMENTED_RULE_L _ 
   | CONC_L _ -> line::tail,flagset
-  | PREPROCESSED_RULE (x, rule,i) -> 
+  | PREPROCESSED_RULE (x,rule,i) -> 
       let a,b = rename_rule rule interface_database flagset in 
       List.fold_left 
 	(fun sol l -> PREPROCESSED_RULE (x,l,i)::sol)
-	tail 
-	(a),b
+	(COMMENTED_RULE_L(rule,i)::tail) 
+	a,b
   | RULE_L _  -> failwith "INTERNAL ERROR"
 
 let rename_obs rule flagset list = 
   match rule with 
-    INIT_L _ | DONT_CARE_L _ | GEN_L _ | CONC_L _ | RULE_L _ | PREPROCESSED_RULE _ -> rule::list
+    INIT_L _ | DONT_CARE_L _ | GEN_L _ | CONC_L _ | RULE_L _ | COMMENTED_RULE_L _ | PREPROCESSED_RULE _ -> rule::list
   | OBS_L (s,a,i) ->
       (try 
 	let l = StringMap.find s flagset in

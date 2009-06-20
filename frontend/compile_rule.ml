@@ -1,3 +1,11 @@
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Main file *)
+(* main.ml *)
+
+
 open Data_structures_metakappa
 
 let compatible b d = 

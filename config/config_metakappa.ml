@@ -1,8 +1,9 @@
-(* 2009/01/08*)
+(* 2009/06/20*)
 (* Meta language for Kappa *)
-(* Jerome Feret*)
-(* Configuration *)
-(* config_metaplx.ml *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Configuration file *)
+(* config_metakappa.ml *)
 
 
 open Superarg
@@ -23,8 +24,8 @@ let time_stamp =
     (ad2 tm.Unix.tm_min) 
     (ad2 tm.Unix.tm_sec)
 
-let version = "1.."^(string_of_int Svn_number.svn_number) 
-let date = "2009.08.06"
+let version = "1.2.."^(string_of_int Svn_number.svn_number) 
+let date = "2009.07.20"
 let input_marshalling = ref "" 
 let input_file = ref [""] 
 let input_focus_on = ref ""
@@ -43,14 +44,14 @@ let memory_limit = ref 0
 
 let output_file = ref ""
 let keep_comments = ref true 
-let metaname   = "METAlanguage: metaplx "^version
+let metaname   = "MetaKappa "^version
 
 let sepname = "\n"
-let headline = ["This file has been automatically computed by the METAlanguage frontend ";metaname]
+let headline = ["This file has been automatically computed by "^metaname]
 
-let head = ref ("\n\n ******************************************************************************************\n 
-"^(List.fold_right (fun a b -> a^"\n"^b) headline "")^
-"******************************************************************************************\n")
+let head = "################################################################################\n"^(List.fold_right (fun a b -> a^"\n"^b) headline "")^
+"MataKappa is an academic prototype for academic uses only.\nJérôme Feret LIENS (INRIA & ENS) and Russ Harmer PPS (CNRS)\n################################################################################\n"
+
 let foot = head
 
 let options = List.rev

@@ -1,6 +1,11 @@
-(* error_handler.ml for complx *)
-(* 08/07/2008 *)
-(* Jerome Feret for Plectix *)
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Error catching *)
+(* error_handling.ml *)
+
+
 
 (** This module provides primitives to catch exceptions and store them (with contextal information) in a stack  *)
 

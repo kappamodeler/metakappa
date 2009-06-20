@@ -1,8 +1,9 @@
-(* error_handler_common.ml for complx/simplx *)
-(* 08/07/2008 *)
-(* Jerome Feret for Plectix *)
-
-(** This module provides common  primitives to catch exceptions and store them (with contextal information) in a stack  *)
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* This module provides common  primitives to catch exceptions and store them (with contextal information) in a stack  *)
+(* error_handler_common.ml *)
 
 open Exceptions
 

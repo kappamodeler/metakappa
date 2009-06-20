@@ -1,19 +1,22 @@
-(* 2009/01/08*)
+(* 2009/06/20*)
 (* Meta language for Kappa *)
-(* Jerome Feret*)
-(* Agent tree definition*)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Agent definition dag definition *)
 (* agent_tree.ml *)
 
 open Error_handler 
 open Data_structures_metakappa
 
-let trace = false
+let trace = false (* set to true to log all computation steps in this module *)
 
+(* report an error at line i*)
 let error i = 
   let _ = print_string (string_of_int i) in 
   let _ = print_newline () in 
   unsafe_frozen None (Some "agent_interfaces.ml") None (Some ("line "^(string_of_int i))) (fun () -> failwith ("error"^(string_of_int i)))
 
+(* convert agent variant definition into *)
 let convert_declaration_into_solved_definition  x  = 
   let add_count agent k map = 
     let old = 
@@ -40,7 +43,7 @@ let convert_declaration_into_solved_definition  x  =
 	 x.definitions
 	 AgentSet.empty)
   in
-  let fadd_liste a b map = 
+  let fadd_list a b map = 
     let old =
       try 
 	AgentMap.find a map 
@@ -50,141 +53,177 @@ let convert_declaration_into_solved_definition  x  =
     in
     AgentMap.add a (b::old) map 
   in
-  let succ,npred,nsucc,interface_map,roots = 
+  let succ,        (*map between each agent A and variants of A *)
+    npred,         (*map between each agent and the number of its predecessors *)
+    nsucc,         (*map between each agent and the number of successors *)
+    interface_map (*map each agent to the list of interface when defined as a root *)
+    = 
     AgentMap.fold 
-      (fun agent_target (def,line) (succ,npred,nsucc,interface_map,roots) -> 
-	match def 
-	with Root l -> (succ,npred,nsucc,AgentMap.add agent_target l interface_map,agent_target::roots)
-	| Unspecified -> (succ,npred,nsucc,interface_map,agent_target::roots)
-	| Variant (agent_source,d) -> 
-	    if AgentSet.mem agent_source agentset 
-	    then 
-	      (fadd_liste agent_source (agent_target,d) succ,
-	       fst (add_count agent_target 1 npred),
-	       fst (add_count agent_source 1 npred),
-	       interface_map,
-	       roots)
-	    else
-	      failwith 
-		(
-	      (match line with None -> "" | Some i -> (string_of_line i)^": ")
-	      ^agent_target^" is introduced as a variant of "^agent_source^" that is not defined"
-									      )
-		)
+      (fun agent_target list (succ,npred,nsucc,interface_map) -> 
+	 List.fold_left 
+	   (fun (succ,npred,nsucc,interface_map) (def,line) -> 
+	      match def 
+	      with Root l -> (succ,npred,nsucc,fadd_list agent_target l interface_map)
+		| Unspecified -> (succ,npred,nsucc,fadd_list agent_target SiteSet.empty interface_map)
+		| Variant (agent_source,d) -> 
+	    	    if AgentSet.mem agent_source agentset 
+		    then 
+		      (fadd_list agent_source (agent_target,d) succ,
+		       fst (add_count agent_target 1 npred),
+		       fst (add_count agent_source 1 nsucc),
+		       interface_map)
+		    else
+		      failwith 
+			(
+			  (match line with None -> "" | Some i -> (string_of_line i)^": ")
+			  ^agent_target^" is introduced as a variant of "^agent_source^" that is not defined"
+			)
+	   )
+	   (succ,npred,nsucc,interface_map) 
+	   list)
       x.definitions 
-      (AgentMap.empty,AgentMap.empty,AgentMap.empty,AgentMap.empty,[]) in 
-  let deal_with agent (working_list,npred) = 
-    let succs = 
-      try
-	AgentMap.find agent succ 
-      with 
-	Not_found -> [] 
+      (AgentMap.empty,AgentMap.empty,AgentMap.empty,AgentMap.empty) in 
+
+  let deal_with agent (working_list,set,npred) = 
+    let set' = AgentSet.add agent (fst set)in 
+    let succs,set'  = 
+      if (fst set)==set' 
+      then 
+	[],set
+      else 
+	let set' = (set',agent::(snd set)) in 
+	try
+	  AgentMap.find agent succ,set'
+	with 
+	    Not_found -> [],set'
     in
-    List.fold_left 
-      (fun (working_list,npred) (agent,_) ->  
-	let npred,n = add_count agent (-1) npred in 
-	(if n=0 
-	then 
-	  agent::working_list
-	else
-	  working_list),
-	npred)
-      (working_list,npred) succs 
+      List.fold_left 
+	(fun (working_list,set,npred) (agent,_) ->  
+	   let npred,n = add_count agent (-1) npred in 
+	     (if n=0 
+	      then 
+		agent::working_list
+	      else
+		working_list),
+	   set,
+	   npred)
+	(working_list,set',npred) 
+	succs 
   in
-  let working_list,npred = 
+  let roots = 
+    AgentMap.fold2 
+      (fun x y l -> l)
+      (fun x y l -> x::l)
+      (fun x y z l -> if y=0 then x::l else l)
+      npred 
+      interface_map
+      []
+  in 
+  let working_list,set,npred = 
     List.fold_left 
       (fun state agent -> deal_with agent state)
-      ([],npred)
+      ([],(AgentSet.empty,[]),npred)
       roots 
   in
   let failwith s = 
     let _ = print_string s in 
     let _ = print_newline () in 
     failwith s in 
-  let interface,new_sites_map = 
-    let rec aux interface_map new_sites_map (working_list,npred) = 
+  let def_map = 
+    AgentMap.map 
+      (fun list -> 
+	 List.map (fun int -> (int,int,[])) list)
+      interface_map 
+  in 
+  let def_map,sorted_agent,npred  = 
+    let rec aux def_map (working_list,set,npred) = 
       match working_list with 
-	[] -> interface_map,new_sites_map  
+	[] -> def_map,List.rev (snd set),npred  
       |	t::q -> 
-	  let def = 
+	  let list = 
 	    try 
 	      AgentMap.find t x.definitions
 	    with 
 	      Not_found -> error 102 
 	  in 
-	 
-	  let agent,decl,line = 
-	    match def with 
-	      Variant(a,decl),line -> a,decl,line
-	    | _ -> error 107 
-	  in
-	  let line = 
-	    match line with None -> "" | Some i -> (string_of_line i) in 
-	  let old_interface = 
-	    try 
-	      AgentMap.find agent interface_map 
-	    with 
-	      Not_found -> error 113 
+	  let def_map = 
+	    List.fold_left 
+	      (fun def_map def -> 
+		 let agent,decl,line = 
+		   match def with 
+		       Variant(a,decl),line -> a,decl,line
+		     | _ -> error 107 
+		 in
+		 let line = 
+		   match line with None -> "" 
+		     | Some i -> (string_of_line i) 
+		 in
+		 let old_defs = 
+		   try 
+		     AgentMap.find agent def_map 
+		   with 
+		       Not_found -> error 113 
+		 in 
+		   List.fold_left 
+		     (fun def_map  (old_interface,_,list) -> 
+			let subs,new_sites  = Agent_interfaces.compute_interface old_interface decl in 
+			let new_interface = 
+			  SiteSet.fold 
+			    (fun s interface  -> 
+			       List.fold_left 
+				 (fun interface s -> 
+				    if SiteSet.mem s interface
+				    then 
+				      failwith 
+					(line^": site "^s^" is defined several time in variant "^t)
+				    else 
+				      SiteSet.add s interface)
+				 interface
+				 ((Agent_interfaces.abstract subs) s))
+			    old_interface 
+			    SiteSet.empty
+			in
+			let new_interface = 
+			  SiteSet.union new_interface new_sites 
+			in 
+			  fadd_list 
+			    t
+			    (new_interface,new_sites,decl::list) 
+			    def_map)
+		     def_map 
+		     old_defs)
+	      def_map 
+	      list 
 	  in 
-	  let subs,new_sites  = Agent_interfaces.compute_interface old_interface decl in 
-	  let new_interface = 
-	    SiteSet.fold 
-	      (fun s interface  -> 
-		List.fold_left 
-		  (fun interface s -> 
-		    if SiteSet.mem s interface
-		    then 
-		      failwith 
-			(line^": site "^s^" is defined several time in variant "^t)
-		       else 
-		      SiteSet.add s interface)
-		  interface
-		  ((Agent_interfaces.abstract subs) s))
-	      old_interface 
-	      SiteSet.empty
-	  in
-	  let new_interface = 
-	    SiteSet.union new_interface new_sites 
-	  in 
-	  aux 
-	    (AgentMap.add t new_interface interface_map)
-	    (AgentMap.add t new_sites new_sites_map)
-	    (deal_with t (q,npred))
+	    aux 
+	      def_map 
+	      (deal_with t (q,set,npred))
     in
-    aux 
-      interface_map 
-      AgentMap.empty 
-      (working_list,npred)
+      aux 
+	def_map 
+	(working_list,set,npred)
   in
+  
   let _ = if trace then print_string "C8\n" in 
 
-  let interface_list = 
-    AgentMap.fold 
-      (fun a b l -> (a,b)::l)
-      interface [] in 
-  let concrete_list = 
-    AgentMap.fold 
-      (fun a b l -> (a,b)::l)
-      x.concrete_names [] in 
-  let rec check l1 l2 = 
-    match l1,l2 with 
-      [], _  -> ()
-    | _ , [] -> ()
-    | (a,b)::q,(c,d)::q' -> 
-	let x = compare a c in 
-	if x<0 then check q l2
-	else if x>0 then check l1 q'
-	else 
-	  match d with 
-	    None,_ -> check q q' 
-	  | Some c,_ -> 
-	      if SiteSet.equal b c 
-	      then check q q'
-	      else 
-		failwith ("Pb with Agent "^a^" interface")
+  let _ = 
+    if AgentMap.is_empty npred 
+    then 
+      () 
+    else 
+      let _ = print_string "Cicular dependences\n" in 
+      let _ = 
+	AgentMap.iter 
+	  (fun a b -> print_string a;print_int b;print_string ",")
+	   npred
+      in 
+      let _ = print_newline () in 
+      failwith "Circular dependencies"
   in 
-  let _ = check interface_list concrete_list in 
-  let solve agent map = 
+  
+  
+
+  let solve agent (interface,new_sites,dlist) map = 
     let rec aux working_list sol = 
       match working_list with 
 	(t,d,subs)::q -> 
@@ -203,14 +242,14 @@ let convert_declaration_into_solved_definition  x  =
       aux [agent,[],
 	    SiteSet.fold 
 	      (fun a -> SiteMap.add a [a])
-	      (AgentMap.find agent interface)
+	      interface
 	      SiteMap.empty 
-	  ] [] in
-    AgentMap.add 
+	  ] [] 
+    in
+    fadd_list
       agent 
       (List.map 
 	 (fun (t,sol) -> 
-	    let intt = AgentMap.find t new_sites_map  in 
 	    let sol = 
 	      SiteSet.fold 
 		(fun site map -> 
@@ -219,7 +258,7 @@ let convert_declaration_into_solved_definition  x  =
 		       map
 		   with 
 		       Not_found -> SiteMap.add site [site] map) 
-	        intt sol 
+	        new_sites  sol 
 	    in 
 	    let forbid = 
 	     SiteMap.fold 
@@ -235,9 +274,11 @@ let convert_declaration_into_solved_definition  x  =
 	 
 	 (List.filter 
 	    (fun (t,sol) -> 
-	      ((try let _ = AgentMap.find t succ in false with Not_found -> true)))
+	      ((try 
+		  let _ = AgentMap.find t succ in false 
+		with Not_found -> true)))
 		sol)) map in
-  let _ = 
+(*  let _ = 
     if trace 
     then 
       let _ = print_string "INTERFACE \n\n" in 
@@ -248,12 +289,26 @@ let convert_declaration_into_solved_definition  x  =
 	    SiteSet.iter print_string b;
 	    print_newline ())
 	  interface in 
-      () in 
-  AgentMap.fold 
-    (fun a _ map -> 
-      solve a map)
-    interface 
-    AgentMap.empty 
+      () in *)
+  let sol = 
+    List.fold_left 
+      (fun map a -> 
+	 let l = 
+	 try 
+	   AgentMap.find a def_map 
+	 with 
+	     Not_found -> [] 
+	 in 
+	   List.fold_left 
+	     (fun map d -> solve a d map)
+	   map 
+	     l)
+      AgentMap.empty 
+      sorted_agent 
+  in 
+    AgentMap.map 
+      (fun l -> List.flatten l) 
+      sol 
 
 let print_macro_tree handler y  = 
   let _ = handler.string "MACRO TREE \n\n" in 
@@ -287,7 +342,7 @@ let convert_declaration_into_solved_definition x =
   then 
     let _ = print_declaration print_handler x in
     let y = convert_declaration_into_solved_definition x in
-    let _ = print_macro_tree print_handler y in
+(*    let _ = print_macro_tree print_handler y in*)
     y
   else
     convert_declaration_into_solved_definition x
@@ -303,7 +358,7 @@ let complete subs =
 	    with Not_found -> 
 	      {subs with 
 		definitions = 
-		  AgentMap.add a (Root interface,None) subs.definitions})
+		  AgentMap.add a [Root interface,None] subs.definitions})
       subs.concrete_names 
       subs 
   in 
@@ -314,7 +369,7 @@ let complete subs =
 	    with Not_found -> 
 	      {subs with 
 		definitions = 
-		  AgentMap.add a (Unspecified,None) subs.definitions})
+		  AgentMap.add a [Unspecified,None] subs.definitions})
       subs.agents 
       subs 
   in subs 

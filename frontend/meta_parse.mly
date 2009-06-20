@@ -1,4 +1,13 @@
-%{  
+%{ 
+
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Parser *)
+(* meta_parse.mly *)
+
+
 open Data_structures_metakappa
 
   let error error i s = 
@@ -32,7 +41,7 @@ let sol_of_hsh hsh =
 
 %}
 %token INIT_LINE  OBS_LINE  STORY_LINE NEWLINE MODIF_LINE GEN_LINE CONC_LINE BEGIN_MAC_LINE END_MAC_LINE EXPAND_MAC_LINE EOF
-%token MULT DIVIDE PLUS MINUS COMMA SEMICOLON GREATER SMALLER SET EQUAL INFINITY SEP
+%token MULT DIVIDE ANTISLASH PLUS MINUS COMMA SEMICOLON GREATER SMALLER SET EQUAL INFINITY SEP
 %token INSTANCE DO AT TIME
 %token KAPPA_LNK KAPPA_WLD KAPPA_SEMI KAPPA_LRAR KAPPA_RAR
 %token OP_PAR CL_PAR OP_CONC CL_CONC OP_ACC CL_ACC
@@ -273,8 +282,12 @@ main:
   instruction:
 | PLUS id {fun f -> Data_structures_metakappa.Add_site ($2 f),"+"^($2 f)}
 | MINUS id {fun f -> Data_structures_metakappa.Delete_site ($2 f),"-"^($2 f)}
-| id DIVIDE OP_ACC id_list CL_ACC {fun f -> Data_structures_metakappa.Rename ($1 f,fst ($4 f)),($1 f)^"\\{"^(snd ($4 f))^"\\}"}
+| subs {$1}
 | id SET id {fun f -> Data_structures_metakappa.Mutate_site($1 f,$3 f),($1 f)^" := "^($3 f)}
+
+  subs:
+ id subs_symbol OP_ACC id_list CL_ACC {fun f -> Data_structures_metakappa.Rename ($1 f,fst ($4 f)),($1 f)^$2^"{"^(snd ($4 f))^"}"}
+|OP_ACC id_list CL_ACC subs_symbol  id {fun f -> Data_structures_metakappa.Rename ($5 f,fst ($2 f)),"{"^(snd ($2 f))^"}"^($4)^($5 f)}
 
   id_list: 
     /*empty*/ {fun f -> [],""}
@@ -335,4 +348,8 @@ idlistlist:
 ne_idlistlist:
     ne_idlist {fun f -> [fst ($1 f)],snd ($1 f) }
 | idlist COMMA idlistlist {fun f -> (fst ($1 f))::(fst ($3 f)),(snd ($1 f))^" , "^(snd ($3 f))}
+
+subs_symbol:
+  DIVIDE {"/"}
+| ANTISLASH {"\\"}
 

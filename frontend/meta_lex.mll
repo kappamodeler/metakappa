@@ -1,5 +1,12 @@
 {
- open Lexing
+ (* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Lexer *)
+(* meta_lex.mll *)
+
+open Lexing
  open Error
  open Meta_parse
 
@@ -60,6 +67,7 @@ let internal_state = '~' (['0'-'9' 'a'-'z' 'A'-'Z']+)
     | '-' {MINUS}
     | '*' {MULT}
     | '/' {DIVIDE}
+    | '\\' {ANTISLASH}
     | '!' {KAPPA_LNK}
     | '~' {KAPPA_MRK}
     | '?' {KAPPA_WLD}

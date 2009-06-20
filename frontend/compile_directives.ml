@@ -1,3 +1,10 @@
+(* 2009/06/20*)
+(* Meta language for Kappa *)
+(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
+(* Academic uses only *)
+(* Translation of agent variant instructions *)
+(* compile_directives.ml *)
+
 open Data_structures_metakappa
 
 let trace = false
@@ -34,26 +41,25 @@ let add_gen (a,b,c,d,_) subs i =
     | Some ((a,_),_),_-> a 
     | None,None -> raise Exit 
   in
-  try 
-    let (a,b) = AgentMap.find agent subs.definitions in 
-    match b with None -> failwith ("Line "^(string_of_line i)^" generic agent "^agent^" is already defined")
-    | Some a -> failwith ("Generic agent "^agent^" is defined in "^(string_of_line i)^" and in "^(string_of_line a))
-  with 
-    Not_found -> 
-      let def = 
-	match (a,b,c,d) with 
-	  Some ((a,b),_),_,_,_ -> 
-	    let _ = trace_print "root\n" in
+  let old = 
+    try 
+      AgentMap.find agent subs.definitions 
+    with 
+	Not_found -> [] 
+  in 
+  let def = 
+    match (a,b,c,d) with 
+	Some ((a,b),_),_,_,_ -> 
+	  let _ = trace_print "root\n" in
 	    Root(List.fold_left (fun sol (a,_) -> SiteSet.add a sol) SiteSet.empty b),Some i
-	| _,_,Some agent',list -> 
-	    let _ = trace_print "variant\n" in 
+      | _,_,Some agent',list -> 
+	  let _ = trace_print "variant\n" in 
 	    Variant(agent',get_instr list),Some i 
-	| _ -> raise Exit 
-      in
-      {subs with definitions = 
-	AgentMap.add agent def  subs.definitions}
-
-
+      | _ -> raise Exit 
+  in
+    {subs with definitions = 
+	AgentMap.add agent (def::old)  subs.definitions}
+	    
 let add_conc (a,b,c,d,e) subs i = 
   let subs = add_gen (a,b,c,d,e) subs i in 
   match a,b with 
@@ -91,7 +97,7 @@ let convert lines =
 	| CONC_L (p,i) -> add_conc p sol i 
 	| RULE_L _ -> sol 
 	| PREPROCESSED_RULE _ -> sol
-	| OBS_L _ | STORY_L _ -> sol )
+	| COMMENTED_RULE_L _ | OBS_L _ | STORY_L _ -> sol )
     { concrete_names=AgentMap.empty;
       definitions=AgentMap.empty;
       agents=AgentSet.empty}

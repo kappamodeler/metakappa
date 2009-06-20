@@ -12,6 +12,7 @@ type token =
   | EOF
   | MULT
   | DIVIDE
+  | ANTISLASH
   | PLUS
   | MINUS
   | COMMA
