@@ -377,7 +377,7 @@ exception Exit of string list
 let gui (a:t) (args:string list) : string list =
 
   let top = openTk () in
-  appname_set "The PLECTIX Static Analyzer";
+  appname_set "MetaKappa: a metalanguage for Kappa";
   Balloon.init ();
   (* option list *)
   let up = Frame.create top in

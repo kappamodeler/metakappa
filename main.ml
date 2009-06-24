@@ -7,43 +7,51 @@ open Rename_agent
 open Lexing 
 open Meta_lex
 
+let log = empty_log 
 
-let compile fic =
+let compile fic log =
     let d = open_in fic in
     let lexbuf = Lexing.from_channel d in
     let rep = Meta_parse.main token lexbuf in 
-    rep 
+    rep,log  
     
-let file = Sys.argv.(1)
-let r = compile file
-let r,def = Macro_processing.collect_def r 
-let r = Macro_processing.macro_expanse []  def fst ""  r []  
-let (decl:declaration)  = Compile_directives.convert r 
-let rules = List.map Compile_rule.convert r 
-let decl = 
+
+let file = ref [] 
+let _ = SuperargTk.parse Config_metakappa.options file  
+let r,log  = compile (List.hd (!file)) log
+let (r,def),log = Macro_processing.collect_def r log
+let r,log  = Macro_processing.macro_expanse []  def fst ""  r [] log  
+let decl,log  = Compile_directives.convert r log
+let rules,log = List.map Compile_rule.convert r,log 
+let decl,log = 
   List.fold_left 
-    (fun decl x -> 
+    (fun (decl,log) x -> 
       Rename_rule.check_model 
-	x decl)
-    decl 
+	x 
+	decl 
+	log)
+    (decl,log) 
     rules 
-let decl = Agent_tree.complete decl 
-let subs = Agent_tree.convert_declaration_into_solved_definition decl
-let rules,flags  = 
+let decl,log = Agent_tree.complete decl log
+let subs,log = Agent_tree.convert_declaration_into_solved_definition decl log
+let (rules,flags),log  = 
   List.fold_left 
-    (fun model rule -> 
+    (fun (model,log) rule -> 
       Rename_rule.transform_model 
 	rule
 	subs
-	model)
-    ([],StringMap.empty) 
+	model 
+        log )
+    (([],StringMap.empty),log)
     rules 
-let rules = 
+let rules,log = 
   List.fold_left 
-    (fun model rule -> Rename_rule.rename_obs rule flags model)
-    []
+    (fun (model,log) rule -> Rename_rule.rename_obs rule flags model log)
+    ([],log)
     rules
-let _ = Pretty_printing.print_model stdout rules
+let log = Pretty_printing.print_model stdout rules log
+let _ = dump_computation_steps stderr log 
+let _ = dump_messages stderr log 
 
 
 

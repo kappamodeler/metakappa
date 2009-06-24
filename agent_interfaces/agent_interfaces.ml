@@ -19,29 +19,43 @@ let convert_action action res =
   | Delete_site site -> (Rename (site,[]))::res
   | Mutate_site (site1,site2) -> (Rename (site1,[]))::(Add_site site2)::res
 
-let compute_interface starting_interface directives = 
+let compute_interface starting_interface directives log = 
   let map = 
     SiteSet.fold
       (fun (x:site) map  -> SiteMap.add x [x] map)
       starting_interface 
       SiteMap.empty 
   in
-  let map,newsites,sources,targets = 
+  let map,newsites,sources,targets,bool,log = 
     List.fold_left 
-      (fun (map,newsites,sources,targets) d -> 
+      (fun (map,newsites,sources,targets,bool,log) d -> 
 	match d with 
 	  Add_site (site) -> 
-	    if 
+	    (*if 
 	      SiteSet.mem site targets 
 	    then 
-	      failwith ("Site "^site^" occurs several time as a new site")
-	    else
-	      (map,SiteSet.add site newsites,sources,SiteSet.add site targets)
+	      let mess = ("Site "^site^" occurs several time as a new site") in
+		match !Config_metakappa.tolerancy with 
+		    0 -> failwith mess 
+		  | 1 -> map,newsites,sources,targets,add_message mess log
+		  | 2 -> map,newsites,sources,targets,log
+		  | 3 -> map,newsites,sources,targets,add_message mess log
+		  | 2 -> map,newsites,sources,targets,log
+		  | 3 -> 
+		  | 2 | 4 -> 
+	    else*)
+	      (map,SiteSet.add site newsites,sources,SiteSet.add site targets,bool,log)
 	| Rename (site,l) -> 
 	    if 
 	      SiteSet.mem site sources 
 	    then 
-	      failwith ("Site "^site^" occurs several time as a modified site")
+	      let mess = "Site "^site^" occurs several time as a modified site" in
+		match !Config_metakappa.tolerancy with 
+		    "0" -> failwith mess 
+		  | "1" -> map,newsites,sources,targets,true,add_message mess log
+		  | "2" -> map,newsites,sources,targets,true,log
+		  | "3" -> map,newsites,sources,targets,bool,add_message mess log
+		  | "4" -> map,newsites,sources,targets,bool,log
 	    else if 
 	      try 
 		let _ = 
@@ -50,23 +64,34 @@ let compute_interface starting_interface directives =
 	      with 
 		Not_found -> true 
 	    then 
-	      failwith ("Site "^site^" is not defined")
+	      let mess = "Site "^site^" is not defined" in
+		match 
+		  !Config_metakappa.tolerancy with 
+		      "0" -> failwith mess
+		    | "1" -> map,newsites,sources,targets,true,add_message mess log
+		    | "2" -> map,newsites,sources,targets,true,log
+		    | "3" -> map,newsites,sources,targets,bool,add_message mess log
+		    | "4" -> map,newsites,sources,targets,bool,log
 	    else 
 	      SiteMap.add site l map,
               newsites,
 	      SiteSet.add site sources,
 	      List.fold_left
 		(fun targets site -> 
-		  if SiteSet.mem site targets 
+		  (*if SiteSet.mem site targets 
 		  then 
 		    failwith ("Site "^site^" occurs several time as a new site")
-		  else
+		  else*)
 		    SiteSet.add site targets)
-		targets l
+		targets l,bool,log
 	| _ -> error 34)
-      (map,SiteSet.empty,SiteSet.empty,SiteSet.empty) directives
+      (map,SiteSet.empty,SiteSet.empty,SiteSet.empty,false,log) 
+      directives
   in 
-  map,newsites 
+    if bool then 
+      None,log 
+    else 
+      Some (map,newsites),log
 
 let compute_interface_portion  starting_interface directives = 
   let map = 

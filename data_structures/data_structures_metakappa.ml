@@ -188,3 +188,26 @@ type pp_parse = PP_INIT_L of  ((subs -> (parsed_agent list *string))*int)
 
 
 
+type log = 
+    {computation_steps : (string*float) list ;
+     warning_messages : string list }
+
+let empty_log = 
+  {computation_steps = [];
+   warning_messages = []}
+
+let add_computation_step step log = 
+  {log with computation_steps = step::log.computation_steps}
+
+let add_message message log = 
+  {log with warning_messages = message::log.warning_messages}
+
+let dump_computation_steps output log = 
+  List.iter 
+    (fun (x,f) -> Printf.fprintf output "%s %f\n" x f) 
+    (List.rev log.computation_steps)
+
+let dump_messages output log = 
+  List.iter 
+    (fun x -> Printf.fprintf output "%s" x)
+    (List.rev log.warning_messages)

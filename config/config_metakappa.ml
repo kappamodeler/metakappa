@@ -40,7 +40,11 @@ let trace=ref false (* debug *)
 let unsafe_mode=ref false (*debug *)
 let memory_limit = ref 0 
 
-
+(* Setting *)
+let tolerancy = ref "0"
+    (* 0 -> crash whenever a conflict is detected in definitions *)
+    (* 1 -> do not generate variants with conflict *)
+    (* 2 -> ignore the instructions that generate a conflict *)
 
 let output_file = ref ""
 let keep_comments = ref true 
@@ -61,17 +65,27 @@ let options = List.rev
 "--truc2",Void,"help",["1_Output"],Normal;
 "--output",String output_file,"where to dump the result",["1_Output"],Normal;
 
-"--memory-limit",Int memory_limit,"Limit the usage of the memory in (Mb)",["2_Memory usage"],Normal;
+(*"--memory-limit",Int memory_limit,"Limit the usage of the memory in (Mb)",["2_Memory usage"],Normal;*)
 
 (*Debug *)
    
-   "--trace",Bool trace,"to dump debuging information",["3_Debug"],Expert;
-   "--unsafe-mode",Bool unsafe_mode,"to keep on computation after unexpected hehavior",["3_Debug"],Expert;
-   "--version",Bool dump_version,"to dump version number",["3_Debug"],Normal;
+   "--trace",Bool trace,"to dump debuging information",["2_Debug"],Normal;
+   "--version",Bool dump_version,"to dump version number",["2_Debug"],Normal;
+
+(*Setting*)
+   "--bug-tolerancy",
+  Choice(["0","Crash on conflict between intstructions";
+	  "1","Ignore variants with conflicting instructions (but warn)";
+	  "2","Ignore variants with conflicting instructions (without warning)";
+	  "3","Ignore conflicting instructions (but warn)";
+	  "4","Ignore conflicting instructions (without warning)"]
+	  ,tolerancy),
+  "level of bug-taulerancy",
+  ["3_Setting"],Normal;
 
 (*key *)
 
-"--key",String key,"security key",["Reachability analysis"],Hidden
+(*"--key",String key,"security key",["Reachability analysis"],Hidden*)
 
 
     ] 

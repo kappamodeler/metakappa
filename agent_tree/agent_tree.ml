@@ -17,7 +17,7 @@ let error i =
   unsafe_frozen None (Some "agent_interfaces.ml") None (Some ("line "^(string_of_int i))) (fun () -> failwith ("error"^(string_of_int i)))
 
 (* convert agent variant definition into *)
-let convert_declaration_into_solved_definition  x  = 
+let convert_declaration_into_solved_definition  x  log = 
   let add_count agent k map = 
     let old = 
       try 
@@ -56,33 +56,50 @@ let convert_declaration_into_solved_definition  x  =
   let succ,        (*map between each agent A and variants of A *)
     npred,         (*map between each agent and the number of its predecessors *)
     nsucc,         (*map between each agent and the number of successors *)
-    interface_map (*map each agent to the list of interface when defined as a root *)
+    interface_map, (*map each agent to the list of interface when defined as a root *)
+    log
     = 
     AgentMap.fold 
-      (fun agent_target list (succ,npred,nsucc,interface_map) -> 
+      (fun agent_target list (succ,npred,nsucc,interface_map,log) -> 
 	 List.fold_left 
-	   (fun (succ,npred,nsucc,interface_map) (def,line) -> 
+	   (fun (succ,npred,nsucc,interface_map,log) (def,line) -> 
 	      match def 
-	      with Root l -> (succ,npred,nsucc,fadd_list agent_target l interface_map)
-		| Unspecified -> (succ,npred,nsucc,fadd_list agent_target SiteSet.empty interface_map)
+	      with Root l -> (succ,npred,nsucc,fadd_list agent_target l interface_map,log)
+		| Unspecified -> (succ,npred,nsucc,fadd_list agent_target SiteSet.empty interface_map,log)
 		| Variant (agent_source,d) -> 
 	    	    if AgentSet.mem agent_source agentset 
 		    then 
 		      (fadd_list agent_source (agent_target,d) succ,
 		       fst (add_count agent_target 1 npred),
 		       fst (add_count agent_source 1 nsucc),
-		       interface_map)
+		       interface_map,
+		       log)
 		    else
-		      failwith 
-			(
-			  (match line with None -> "" | Some i -> (string_of_line i)^": ")
-			  ^agent_target^" is introduced as a variant of "^agent_source^" that is not defined"
-			)
+		      let mess = 
+			(match line with None -> "" | Some i -> (string_of_line i)^": ")
+			^agent_target^" is introduced as a variant of "^agent_source^" that is not defined"
+		      in
+			match !Config_metakappa.tolerancy 
+			with 
+			    "0" -> failwith mess 
+			  | "1" | "3" -> 
+			      succ,
+			      npred,
+			      nsucc,
+			      interface_map,
+			      add_message mess log 
+			  | "2" | "4" -> 
+			      succ,
+			      npred,
+			      nsucc,
+			      interface_map,
+			      log 
 	   )
-	   (succ,npred,nsucc,interface_map) 
+	   (succ,npred,nsucc,interface_map,log) 
 	   list)
       x.definitions 
-      (AgentMap.empty,AgentMap.empty,AgentMap.empty,AgentMap.empty) in 
+      (AgentMap.empty,AgentMap.empty,AgentMap.empty,AgentMap.empty,log) 
+  in 
 
   let deal_with agent (working_list,set,npred) = 
     let set' = AgentSet.add agent (fst set)in 
@@ -135,10 +152,10 @@ let convert_declaration_into_solved_definition  x  =
 	 List.map (fun int -> (int,int,[])) list)
       interface_map 
   in 
-  let def_map,sorted_agent,npred  = 
-    let rec aux def_map (working_list,set,npred) = 
+  let def_map,sorted_agent,npred,log  = 
+    let rec aux (def_map,log) (working_list,set,npred) = 
       match working_list with 
-	[] -> def_map,List.rev (snd set),npred  
+	[] -> def_map,List.rev (snd set),npred,log
       |	t::q -> 
 	  let list = 
 	    try 
@@ -146,9 +163,9 @@ let convert_declaration_into_solved_definition  x  =
 	    with 
 	      Not_found -> error 102 
 	  in 
-	  let def_map = 
+	  let def_map,log = 
 	    List.fold_left 
-	      (fun def_map def -> 
+	      (fun (def_map,log) def -> 
 		 let agent,decl,line = 
 		   match def with 
 		       Variant(a,decl),line -> a,decl,line
@@ -165,42 +182,44 @@ let convert_declaration_into_solved_definition  x  =
 		       Not_found -> error 113 
 		 in 
 		   List.fold_left 
-		     (fun def_map  (old_interface,_,list) -> 
-			let subs,new_sites  = Agent_interfaces.compute_interface old_interface decl in 
-			let new_interface = 
-			  SiteSet.fold 
-			    (fun s interface  -> 
-			       List.fold_left 
-				 (fun interface s -> 
-				    if SiteSet.mem s interface
-				    then 
-				      failwith 
+		     (fun (def_map,log)  (old_interface,_,list) -> 
+			let rep,log  = Agent_interfaces.compute_interface old_interface decl log in 
+			  match rep with None -> (def_map,log)
+			    |Some (subs,new_sites) -> 
+			       let new_interface = 
+				 SiteSet.fold 
+				   (fun s interface  -> 
+				      List.fold_left 
+					(fun interface s -> 
+					   if SiteSet.mem s interface
+					   then 
+					     failwith 
 					(line^": site "^s^" is defined several time in variant "^t)
-				    else 
-				      SiteSet.add s interface)
-				 interface
-				 ((Agent_interfaces.abstract subs) s))
-			    old_interface 
-			    SiteSet.empty
-			in
-			let new_interface = 
-			  SiteSet.union new_interface new_sites 
+					   else 
+					     SiteSet.add s interface)
+					interface
+					((Agent_interfaces.abstract subs) s))
+				   old_interface 
+				   SiteSet.empty
+			       in
+			       let new_interface = 
+				 SiteSet.union new_interface new_sites 
 			in 
-			  fadd_list 
-			    t
-			    (new_interface,new_sites,decl::list) 
-			    def_map)
-		     def_map 
+				 fadd_list 
+				   t
+				   (new_interface,new_sites,decl::list) 
+				   def_map,log )
+		     (def_map,log) 
 		     old_defs)
-	      def_map 
+	      (def_map,log) 
 	      list 
 	  in 
 	    aux 
-	      def_map 
+	      (def_map,log) 
 	      (deal_with t (q,set,npred))
     in
       aux 
-	def_map 
+	(def_map,log) 
 	(working_list,set,npred)
   in
   
@@ -278,18 +297,6 @@ let convert_declaration_into_solved_definition  x  =
 		  let _ = AgentMap.find t succ in false 
 		with Not_found -> true)))
 		sol)) map in
-(*  let _ = 
-    if trace 
-    then 
-      let _ = print_string "INTERFACE \n\n" in 
-      let _ = 
-	AgentMap.iter 
-	  (fun a b -> 
-	    print_string a;
-	    SiteSet.iter print_string b;
-	    print_newline ())
-	  interface in 
-      () in *)
   let sol = 
     List.fold_left 
       (fun map a -> 
@@ -306,9 +313,9 @@ let convert_declaration_into_solved_definition  x  =
       AgentMap.empty 
       sorted_agent 
   in 
-    AgentMap.map 
+    (AgentMap.map 
       (fun l -> List.flatten l) 
-      sol 
+      sol) , log 
 
 let print_macro_tree handler y  = 
   let _ = handler.string "MACRO TREE \n\n" in 
@@ -348,7 +355,7 @@ let convert_declaration_into_solved_definition x =
     convert_declaration_into_solved_definition x
 
 
-let complete subs = 
+let complete subs log = 
   let subs = 
     AgentMap.fold 
       (fun a (b,c) subs ->
@@ -372,5 +379,5 @@ let complete subs =
 		  AgentMap.add a [Unspecified,None] subs.definitions})
       subs.agents 
       subs 
-  in subs 
+  in subs,log  
 	

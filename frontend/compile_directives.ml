@@ -80,10 +80,12 @@ let add_conc (a,b,c,d,e) subs i =
       end
   | _ -> raise Exit 
  
-let convert lines = 
+let convert lines log = 
   List.fold_left 
     (fun 
-      sol x -> 
+       (sol,log)
+       x 
+       -> 
 	match x 
 	with 
 	  INIT_L (a,_,i) -> 
@@ -91,15 +93,15 @@ let convert lines =
 	      (fun sol a -> 
 		let ag,site = get_interface a in 
 		add_concrete ag site sol i)
-	      sol a 
-	| DONT_CARE_L _ -> sol 
-	| GEN_L (p,i) -> add_gen p sol i
-	| CONC_L (p,i) -> add_conc p sol i 
-	| RULE_L _ -> sol 
-	| PREPROCESSED_RULE _ -> sol
-	| COMMENTED_RULE_L _ | OBS_L _ | STORY_L _ -> sol )
-    { concrete_names=AgentMap.empty;
+	      sol a , log 
+	| DONT_CARE_L _ -> sol , log
+	| GEN_L (p,i) -> add_gen p sol i ,log 
+	| CONC_L (p,i) -> add_conc p sol i ,log
+	| RULE_L _ -> sol ,log
+	| PREPROCESSED_RULE _ -> sol,log
+	| COMMENTED_RULE_L _ | OBS_L _ | STORY_L _ -> sol,log )
+    ({ concrete_names=AgentMap.empty;
       definitions=AgentMap.empty;
-      agents=AgentSet.empty}
+      agents=AgentSet.empty},log)
     lines 
 

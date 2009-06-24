@@ -17,7 +17,7 @@ let error i =
 
 let id = (fun x -> x)
 
-let collect_def l = 
+let collect_def l log = 
   let rec seek_macro_def l sol dictionary  = 
     match l with t::q -> 
       begin 
@@ -49,7 +49,7 @@ let collect_def l =
 	  | _ -> seek_macro_end q ((ag,int,string),i) (t::local) sol dictionary
 	end
   in 
-  seek_macro_def  l [] StringMap.empty 
+  seek_macro_def  l [] StringMap.empty , log 
 
 
 let print_def handler def = 
@@ -116,51 +116,52 @@ let extend_flag x stack tag =
     flag^tag,snd x
 	  
 	    
-let rec macro_expanse calling_stack def f tag l sol = 
+let rec macro_expanse calling_stack def f tag l sol log = 
   match l with 
-    [] -> sol 
+    [] -> sol,log 
   | t::q -> 
       begin
-	let sol'  = 
+	let sol',log  = 
 	  match t with 
-	    PP_INIT_L (x,i) -> INIT_L(let a,b = x f in a,b,i)::sol
-	  | PP_DONT_CARE_L (x,i) -> DONT_CARE_L(x f,i)::sol
-	  | PP_OBS_L (x,i) -> OBS_L(let a,b = x f in a,b,i)::sol
-	  | PP_STORY_L (x,i) -> STORY_L(let a,b = x f in a,b,i)::sol
-	  | PP_GEN_L (x,i) -> GEN_L(x f,i)::sol
-	  | PP_CONC_L (x,i) -> CONC_L(x f,i)::sol
-	  | PP_RULE_L (x,i) -> RULE_L(extend_flag (x f) calling_stack tag,i)::sol
-	  | PP_PREPROCESSED_RULE (x,i) -> PREPROCESSED_RULE(let a,b = x f in a,b,i)::sol
+	    PP_INIT_L (x,i) -> INIT_L(let a,b = x f in a,b,i)::sol,log
+	  | PP_DONT_CARE_L (x,i) -> DONT_CARE_L(x f,i)::sol,log
+	  | PP_OBS_L (x,i) -> OBS_L(let a,b = x f in a,b,i)::sol,log
+	  | PP_STORY_L (x,i) -> STORY_L(let a,b = x f in a,b,i)::sol,log
+	  | PP_GEN_L (x,i) -> GEN_L(x f,i)::sol,log
+	  | PP_CONC_L (x,i) -> CONC_L(x f,i)::sol,log
+	  | PP_RULE_L (x,i) -> RULE_L(extend_flag (x f) calling_stack tag,i)::sol,log
+	  | PP_PREPROCESSED_RULE (x,i) -> PREPROCESSED_RULE(let a,b = x f in a,b,i)::sol,log
 	  | PP_EMAC_L _ | PP_BMAC_L _ -> 
 	      error 129 
 	  | PP_CMAC_L (cont,i) -> 
-	      let rec call (x,arg,string) sol calling_stack = 
+	      let rec call (x,arg,string) sol calling_stack log = 
 		try 
 		  let _ = print_string x in 
 		  let (int,body),i2= 
 		    StringMap.find x def 
 		  in 
 		  List.fold_left 
-		    (fun sol rule -> 
+		    (fun (sol,log) rule -> 
 		      let variables = get_macro_var rule in 
 		      let _ = 
 			if List.length int <> List.length arg
 			then failwith ("Wrong number of arguments in Line: "^(string_of_line i))
 		      in
 		      let fun_list,subs_to_list = get_subs variables int arg  in 
-		      match rule with PP_CMAC_L(cont2,i2) -> 
-			   let (x2,arg2,string2) = cont2 f in 
-			    let arg3 = 
-			      List.map 
-				(fun l -> 
-				  let set = 
-				    List.fold_left 
-				      (fun set x -> 
-					List.fold_left 
-					  (fun set y -> StringSet.add y set)
-					  set
-					  (try 
-					  StringMap.find x subs_to_list 
+		      match rule 
+		      with PP_CMAC_L(cont2,i2) -> 
+			let (x2,arg2,string2) = cont2 f in 
+			let arg3 = 
+			  List.map 
+			    (fun l -> 
+			       let set = 
+				 List.fold_left 
+				   (fun set x -> 
+				      List.fold_left 
+					(fun set y -> StringSet.add y set)
+					set
+					(try 
+					   StringMap.find x subs_to_list 
 					  with 
 					    Not_found -> [x]))
 				      StringSet.empty 
@@ -169,36 +170,37 @@ let rec macro_expanse calling_stack def f tag l sol =
 				  StringSet.fold (fun x l -> x::l) set [])
 				arg2
 			    in 
-			    call (x2,arg3,string2) sol ((string_of_line i2)::calling_stack)
-		      |	rule -> 
-			  List.fold_left 
-			    (fun sol sigma -> 
-			      let tag = 
-				String2Map.fold 
-				  (fun (x,a) y tag -> 
-				    (tag^"."^x^"%"^a^"/"^y))
-							  
-							sigma 
-							""
-			      in
-							 
-			      let sigma x = 
-				try 
-				  String2Map.find x sigma 
-				with 
-				  Not_found -> (fst x) 
-			      in 
-			      
-			      macro_expanse calling_stack def sigma tag [rule] sol )
-		      sol 
-		      fun_list)
-		  sol body 
-	      with 
-		Not_found -> 
-		  failwith ("MACRO "^x^" undefined at line "^(string_of_line i))
-	      in (call (cont f) sol ((string_of_line i)::calling_stack)) 
-	in macro_expanse calling_stack def f tag q sol' 
+			    call (x2,arg3,string2) sol ((string_of_line i2)::calling_stack) log
+			|	rule -> 
+				  List.fold_left 
+				    (fun (sol,log) sigma -> 
+				       let tag = 
+					 String2Map.fold 
+					   (fun (x,a) y tag -> 
+					      (tag^"."^x^"%"^a^"/"^y))
+					   
+					   sigma 
+					   ""
+				       in
+					 
+				       let sigma x = 
+					 try 
+					   String2Map.find x sigma 
+					 with 
+					     Not_found -> (fst x) 
+				       in 
+					 
+					 macro_expanse calling_stack def sigma tag [rule] sol log )
+				    (sol,log) 
+				    fun_list)
+		    (sol,log) body 
+		with 
+		    Not_found -> 
+		      failwith ("MACRO "^x^" undefined at line "^(string_of_line i))
+	      in (call (cont f) sol ((string_of_line i)::calling_stack) log)
+	in macro_expanse calling_stack def f tag q sol' log
       end
 
-let macro_expanse x a b c d e = 
-  List.rev (macro_expanse x a b c d e)
+let macro_expanse x a b c d e f = 
+  let rep,log = macro_expanse x a b c d e f
+  in List.rev rep,log 
