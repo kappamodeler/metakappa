@@ -199,9 +199,12 @@ let empty_log =
 let add_computation_step step log = 
   {log with computation_steps = step::log.computation_steps}
 
-let add_message message log = 
-  {log with warning_messages = message::log.warning_messages}
-
+let add_message message bool log = 
+  if bool 
+  then 
+    {log with warning_messages = message::log.warning_messages}
+  else 
+    log 
 let dump_computation_steps output log = 
   List.iter 
     (fun (x,f) -> Printf.fprintf output "%s %f\n" x f) 
@@ -209,5 +212,5 @@ let dump_computation_steps output log =
 
 let dump_messages output log = 
   List.iter 
-    (fun x -> Printf.fprintf output "%s" x)
+    (fun x -> Printf.fprintf output "%s\n" x)
     (List.rev log.warning_messages)

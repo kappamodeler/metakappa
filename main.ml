@@ -34,6 +34,7 @@ let decl,log =
     rules 
 let decl,log = Agent_tree.complete decl log
 let subs,log = Agent_tree.convert_declaration_into_solved_definition decl log
+let _ = Agent_tree.print_macro_tree print_handler  subs 
 let (rules,flags),log  = 
   List.fold_left 
     (fun (model,log) rule -> 

@@ -14,7 +14,7 @@ let trace = false (* set to true to log all computation steps in this module *)
 let error i = 
   let _ = print_string (string_of_int i) in 
   let _ = print_newline () in 
-  unsafe_frozen None (Some "agent_interfaces.ml") None (Some ("line "^(string_of_int i))) (fun () -> failwith ("error"^(string_of_int i)))
+  unsafe_frozen None (Some "agent_trees.ml") None (Some ("line "^(string_of_int i))) (fun () -> failwith ("error"^(string_of_int i)))
 
 (* convert agent variant definition into *)
 let convert_declaration_into_solved_definition  x  log = 
@@ -82,18 +82,12 @@ let convert_declaration_into_solved_definition  x  log =
 			match !Config_metakappa.tolerancy 
 			with 
 			    "0" -> failwith mess 
-			  | "1" | "3" -> 
+			  | "1" | "2" -> 
 			      succ,
 			      npred,
 			      nsucc,
 			      interface_map,
-			      add_message mess log 
-			  | "2" | "4" -> 
-			      succ,
-			      npred,
-			      nsucc,
-			      interface_map,
-			      log 
+			      add_message mess (!Config_metakappa.log_warning) log 
 	   )
 	   (succ,npred,nsucc,interface_map,log) 
 	   list)
@@ -179,38 +173,35 @@ let convert_declaration_into_solved_definition  x  log =
 		   try 
 		     AgentMap.find agent def_map 
 		   with 
-		       Not_found -> error 113 
+		       Not_found -> []
 		 in 
-		   List.fold_left 
-		     (fun (def_map,log)  (old_interface,_,list) -> 
-			let rep,log  = Agent_interfaces.compute_interface old_interface decl log in 
-			  match rep with None -> (def_map,log)
-			    |Some (subs,new_sites) -> 
-			       let new_interface = 
-				 SiteSet.fold 
-				   (fun s interface  -> 
-				      List.fold_left 
-					(fun interface s -> 
-					   if SiteSet.mem s interface
-					   then 
-					     failwith 
-					(line^": site "^s^" is defined several time in variant "^t)
-					   else 
-					     SiteSet.add s interface)
-					interface
-					((Agent_interfaces.abstract subs) s))
-				   old_interface 
-				   SiteSet.empty
-			       in
-			       let new_interface = 
-				 SiteSet.union new_interface new_sites 
-			in 
-				 fadd_list 
-				   t
-				   (new_interface,new_sites,decl::list) 
-				   def_map,log )
-		     (def_map,log) 
-		     old_defs)
+		     List.fold_left 
+		       (fun (def_map,log)  (old_interface,_,list) -> 
+			  let rep,log  = Agent_interfaces.compute_interface old_interface decl log in 
+			    match rep with None -> (def_map,log)
+			      | Some (subs,new_sites) -> 
+				  let new_interface = 
+				    SiteSet.fold 
+				      (fun s interface  -> 
+					       List.fold_left 
+						 (fun interface s -> SiteSet.add s interface)
+						 interface
+						 ((Agent_interfaces.abstract subs) s))
+					    old_interface 
+				      SiteSet.empty
+				  in
+				  let new_interface = 
+				    SiteSet.union new_interface new_sites 
+				  in 
+				    (print_string "ADD_list";print_string t;
+				     print_newline ();
+				      fadd_list 
+					     t
+					     (new_interface,new_sites,decl::list) 
+					     def_map),
+				     log)
+		       (def_map,log) 
+		       old_defs)
 	      (def_map,log) 
 	      list 
 	  in 
@@ -223,100 +214,133 @@ let convert_declaration_into_solved_definition  x  log =
 	(working_list,set,npred)
   in
   
-  let _ = if trace then print_string "C8\n" in 
-
   let _ = 
-    if AgentMap.is_empty npred 
+    if trace 
     then 
-      () 
-    else 
-      let _ = print_string "Cicular dependences\n" in 
+      let _ = print_string "DEF_MAP\n" in 
       let _ = 
 	AgentMap.iter 
-	  (fun a b -> print_string a;print_int b;print_string ",")
-	   npred
+	  (fun a b -> 
+	     print_string a;
+	     print_newline ();
+	     List.iter 
+	       (fun elt -> ())
+	       b;
+	     print_newline ())
+	  def_map 
+      in ()
+  in 
+
+  let log = 
+    if AgentMap.is_empty npred 
+    then 
+      log
+    else 
+      let log = add_message "Cicular dependences" (!Config_metakappa.log_warning)  log in 
+      let log =
+	add_message 
+	  (
+	    AgentMap.fold 
+	      (fun a b s -> s^a^(string_of_int b)^",")
+	      npred
+	      "")
+	  (!Config_metakappa.log_warning)
+	  log 
       in 
-      let _ = print_newline () in 
-      failwith "Circular dependencies"
+	log 
+
   in 
   
   
 
-  let solve agent (interface,new_sites,dlist) map = 
-    let rec aux working_list sol = 
+  let solve agent (interface,new_sites,dlist) map log = 
+    let rec aux working_list sol log = 
       match working_list with 
 	(t,d,subs)::q -> 
-	  let subs' = Agent_interfaces.compute_subs subs d in 
-	  let sol' = (t,subs')::sol in 
-	  let q' = 
-	    List.fold_left 
-	      (fun q (t,d)  -> (t,d,subs')::q)
-	      q 
-	      (try AgentMap.find t succ with Not_found -> []) 
-	       in 
-	  aux q' sol' 
-      |	[] -> sol 
+	  let subs',log  = Agent_interfaces.compute_subs subs d log in 
+	    begin
+	      match subs' 
+	      with 
+		  None -> aux q sol log
+		| Some subs' -> 
+		    let sol' = (t,subs')::sol in 
+		  let q' = 
+		    List.fold_left 
+		      (fun q (t,d)  -> (t,d,subs')::q)
+		      q 
+		      (try AgentMap.find t succ with Not_found -> []) 
+		  in 
+		    aux q' sol' log
+	    end
+	| [] -> sol,log
     in 
-    let sol = 
-      aux [agent,[],
-	    SiteSet.fold 
-	      (fun a -> SiteMap.add a [a])
-	      interface
-	      SiteMap.empty 
-	  ] [] 
+    let sol,log  = 
+      aux 
+	[agent,[],
+	 SiteSet.fold 
+	   (fun a -> SiteMap.add a [a])
+	   interface
+	   SiteMap.empty 
+	] 
+	[]
+	log
     in
-    fadd_list
-      agent 
-      (List.map 
-	 (fun (t,sol) -> 
-	    let sol = 
-	      SiteSet.fold 
-		(fun site map -> 
-		   try 
-		     let _ = SiteMap.find site map in 
-		       map
-		   with 
-		       Not_found -> SiteMap.add site [site] map) 
-	        new_sites  sol 
-	    in 
-	    let forbid = 
-	     SiteMap.fold 
-	       (fun a b c -> 
-		 if b = [] then SiteSet.add a c 
+      fadd_list
+	agent 
+	(List.map 
+	   (fun (t,sol) -> 
+	      let sol = 
+		SiteSet.fold 
+		  (fun site map -> 
+		     try 
+		       let _ = SiteMap.find site map in 
+			 map
+		     with 
+			 Not_found -> SiteMap.add site [site] map) 
+	          new_sites  sol 
+	      in 
+	      let forbid = 
+		SiteMap.fold 
+		  (fun a b c -> 
+		     if b = [] then SiteSet.add a c 
 		 else c)
-	       sol 
-	       SiteSet.empty
-	   in 
-	   {target_name=t;
-             forbidden_sites=forbid;
-	    substitutions=sol})
-	 
-	 (List.filter 
-	    (fun (t,sol) -> 
-	      ((try 
-		  let _ = AgentMap.find t succ in false 
-		with Not_found -> true)))
-		sol)) map in
-  let sol = 
+		  sol 
+		  SiteSet.empty
+	      in 
+		{target_name=t;
+		 forbidden_sites=forbid;
+		 substitutions=sol}
+	   )
+	   (List.filter 
+	      (fun (t,sol) -> 
+		 ((try 
+		     let _ = AgentMap.find t succ in false 
+		   with Not_found -> true)))
+	      sol
+	   ))
+	map,
+    log
+  in
+  let sol,log = 
     List.fold_left 
-      (fun map a -> 
+      (fun (map,log) a -> 
 	 let l = 
-	 try 
-	   AgentMap.find a def_map 
-	 with 
-	     Not_found -> [] 
+	   try 
+	     AgentMap.find a def_map 
+	   with 
+	       Not_found -> [] 
 	 in 
 	   List.fold_left 
-	     (fun map d -> solve a d map)
-	   map 
+	     (fun (map,log) d -> solve a d map log)
+	     (map,log) 
 	     l)
-      AgentMap.empty 
+      (AgentMap.empty,log)
       sorted_agent 
   in 
     (AgentMap.map 
-      (fun l -> List.flatten l) 
-      sol) , log 
-
+       (fun l -> List.flatten l) 
+       sol) , log 
+      
 let print_macro_tree handler y  = 
   let _ = handler.string "MACRO TREE \n\n" in 
   let _ = 
