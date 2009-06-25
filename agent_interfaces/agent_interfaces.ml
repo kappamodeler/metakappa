@@ -19,7 +19,7 @@ let convert_action action res =
   | Delete_site site -> (Rename (site,[]))::res
   | Mutate_site (site1,site2) -> (Rename (site1,[]))::(Add_site site2)::res
 
-let compute_interface starting_interface directives log = 
+let compute_interface starting_interface directives lineage log = 
   let map = 
     SiteSet.fold
       (fun (x:site) map  -> SiteMap.add x [x] map)
@@ -36,7 +36,7 @@ let compute_interface starting_interface directives log =
 	    if 
 	      SiteSet.mem site sources 
 	    then 
-	      let mess = "Site "^site^" occurs several time as a modified site" in
+	      let mess = "Site "^site^" occurs several time as a modified site (Agent lineage: "^(string_of_lineage lineage)^")" in
 		match !Config_metakappa.tolerancy with 
 		    "0" -> failwith mess 
 		  | "1" -> map,newsites,sources,targets,true,add_message mess (!Config_metakappa.log_warning) log
@@ -49,7 +49,7 @@ let compute_interface starting_interface directives log =
 	      with 
 		Not_found -> true 
 	    then 
-	      let mess = "Site "^site^" is not defined" in
+	      let mess = "Site "^site^" is not defined (Agent lineage: "^(string_of_lineage lineage)^")" in
 		match 
 		  !Config_metakappa.tolerancy with 
 		      "0" -> failwith mess
@@ -71,16 +71,16 @@ let compute_interface starting_interface directives log =
     else 
       Some (map,newsites),log
 
-let compute_interface_portion  starting_interface directives log = 
+let compute_interface_portion  starting_interface directives lineage log = 
   let map = 
     List.fold_left 
       (fun map x -> SiteMap.add x [x] map)
-      SiteMap.empty 
+      SiteMap.empty
       starting_interface 
-  in
-  let map,newsites,sources,targets,proper_targets,bool,log = 
+    in
+    let map,newsites,sources,targets,proper_targets,log = 
     List.fold_left 
-      (fun (map,newsites,sources,targets,proper_targets,bool,log) d -> 
+      (fun (map,newsites,sources,targets,proper_targets,log) d -> 
 	match d with 
 	  Add_site (site) -> 
 	      (map,
@@ -88,13 +88,12 @@ let compute_interface_portion  starting_interface directives log =
                sources,
 	       SiteSet.add site targets,
 	       proper_targets,
-	       bool,
 	       log )
 	| Rename (site,l) -> 
 	    if 
 	      SiteSet.mem site sources 
 	    then 
-	      failwith ("Site "^site^" occurs several time as a modified site")
+	      failwith ("Site "^site^" occurs several time as a modified site (Agent lineage: "^(string_of_lineage lineage)^")")
 	    else if 
 	      try 
 		let _ = 
@@ -103,18 +102,12 @@ let compute_interface_portion  starting_interface directives log =
 	      with 
 		Not_found -> true 
 	    then 
-	      let mess = "Site "^site^" is not defined" in
-		match 
-		  !Config_metakappa.tolerancy 
-		with 
-		      "0" -> failwith mess
-		    | "1" -> map,newsites,sources,targets,proper_targets,true,log
-		    | "2" -> map,newsites,sources,targets,proper_targets,bool,log
-
+	      map,newsites,sources,targets,proper_targets,log 
 	    else 
 	      let targets,proper_targets = 
 		List.fold_left
-		(fun (targets,proper_targets)  site -> SiteSet.add site targets,SiteSet.add site proper_targets)
+		(fun (targets,proper_targets)  site -> 
+		   SiteSet.add site targets,SiteSet.add site proper_targets)
 		(targets,proper_targets) l
 	      in
 		(SiteMap.add site l map ,
@@ -122,7 +115,6 @@ let compute_interface_portion  starting_interface directives log =
 		 SiteSet.add site sources,
 		 targets,
 		 proper_targets,
-		 bool,
 		 log)
       
 		  
@@ -132,16 +124,12 @@ let compute_interface_portion  starting_interface directives log =
        SiteSet.empty,
        SiteSet.empty,
        SiteSet.empty,
-       false,
        log) 
       directives
-  in 
-  if bool 
-  then 
-    None,log
-  else 
-    Some (map,SiteSet.diff newsites targets),log 
+    in 
 
+      (map,SiteSet.diff newsites proper_targets,log)
+	  
 
 let abstract map = 
   (fun x -> 
@@ -150,27 +138,27 @@ let abstract map =
     with 
       Not_found -> error 76)
   
-let compute_subs (starting_subs) directives log =
+let compute_subs starting_subs directives lineage log =
   let rep,bool,log = 
     SiteMap.fold
       (fun site l (map,bool,log) -> 
-	 match compute_interface_portion l directives log 
-	 with 
-	     None,log -> (map,true,log)
-	   | Some (a,b),log'-> 
-	       SiteMap.add 
-	       site 
-		 (SiteMap.fold 
-		    (fun l l2 sol -> 
-		       List.fold_left 
-			 (fun q a -> a::q)
-			 (if SiteSet.mem l b then l::sol else sol) 
-		    l2)
-		    a
-		    [])
-		 map,
-	       bool,
-	       log)
+	 let a,b,log = compute_interface_portion l directives lineage log in 
+	 let rep = 
+	   SiteMap.add 
+	     site 
+	     (SiteMap.fold 
+		(fun l l2 sol -> 
+		   List.fold_left 
+		     (fun q a -> a::q)
+		     (if SiteSet.mem l b then l::sol else sol) 
+		     l2)
+		a
+		[])
+	     map,
+	   bool,
+	   log 
+	 in 
+           rep)
       starting_subs
       (SiteMap.empty,false,log)
   in 

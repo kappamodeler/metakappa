@@ -103,9 +103,10 @@ let rename_rule rule interface_database flagmap  log =
 	(List.fold_left 
 	  (fun a (kappa_prefix,tag_prefix) -> 
 	    List.fold_left 
-	      (fun a (tag_suffix,kappa_suffix)  -> 
-		(kappa_suffix::kappa_prefix,tag_suffix::tag_prefix)::a)
-	      a sol)
+	      (fun a (tag_suffix,lineage,kappa_suffix)  -> 
+		(kappa_suffix::kappa_prefix,["%",string_of_lineage lineage]::(tag_suffix::tag_prefix))::a)
+	      a 
+	      sol)
 	 [] 
 	  prefix_list,log))
       ([[],[]],log) 
@@ -126,7 +127,14 @@ let rename_rule rule interface_database flagmap  log =
 		  (fun (liste,flags) (right,right') -> 
 		     let add_flag = 
 		       List.fold_left 
-			 (List.fold_left (fun flag (a,b)-> flag^"."^b^"/"^a))
+			 (List.fold_left (fun flag (a,b)-> 
+					    if a = "%"
+					    then 
+					      if b="" then flag 
+					      else 
+						flag^"."^b 
+					    else
+					      flag^"."^b^"/"^a))
 		     in 
 		     let flag' = add_flag (add_flag (add_flag rule.flag hs') left') right' in 
 		       {rule with 

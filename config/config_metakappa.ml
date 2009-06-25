@@ -70,8 +70,8 @@ let options = List.rev
 
 (*Debug *)
    
-(*   "--trace",Bool trace,"to dump debuging information",["Options"],Normal;
-   "--version",Bool dump_version,"to dump version number",["Options"],Normal;*)
+   "--trace",Bool trace,"to dump debuging information",["Options"],Normal;
+(*   "--version",Bool dump_version,"to dump version number",["Options"],Normal;*)
 
 (*Setting*)
    "--warn",Bool log_warning,"log warning messages, or not",["Options"],Normal;

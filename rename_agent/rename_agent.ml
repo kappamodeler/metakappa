@@ -18,7 +18,11 @@ let rename_agent agent subs log =
        begin 
 	 let cases = AgentMap.find name subs in 
 	 let interface_list = List.map fst agent.interface in 
-	 let interface_set = List.fold_left (fun set a -> SiteSet.add a set) SiteSet.empty interface_list in 
+	 let interface_set = 
+	   List.fold_left (
+	     fun set a -> SiteSet.add a set) 
+	     SiteSet.empty 
+	     interface_list in 
 	 let cases = 
 	   List.filter 
 	     (fun a -> SiteSet.is_empty (SiteSet.inter interface_set a.forbidden_sites))
@@ -47,14 +51,15 @@ let rename_agent agent subs log =
 			   [] prefix_set 
 		       in 
 			 extended_prefix_set)
-		    [[name,agent_name],[],SiteSet.empty] agent.interface  in 
+		    [[name,agent_name],[],SiteSet.empty] 
+		    agent.interface  in 
 		  List.fold_left  
-		    (fun sol (annotation,int,_) -> (List.rev annotation,{agent_name=agent_name;interface=List.rev int})::sol) 
+		    (fun sol (annotation,int,_) -> (List.rev annotation,case.lineage,{agent_name=agent_name;interface=List.rev int})::sol) 
 		    sol interface_set )
 	     [] cases 
        end
      with Not_found -> 
-       if check_agent agent then [[],agent] else [] 
+       if check_agent agent then [[],[],agent] else [] 
    end,
   log 
 	 

@@ -53,7 +53,7 @@ let collect_def l log =
 
 
 let print_def handler def = 
-  let _ = handler.string "PRINT DEF\n" in 
+  let _ = handler.string "List of Macro-definitions\n" in 
   let _ = 
     StringMap.iter 
       (fun a ((b,c),d) -> 
@@ -62,7 +62,7 @@ let print_def handler def =
 	handler.line ())
       def 
   in
-  let _ = handler.string "END DEF\n" in 
+  let _ = handler.string "End of the list of Macro-definitions \n\n\n" in 
   ()
 
 

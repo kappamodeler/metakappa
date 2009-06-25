@@ -41,6 +41,11 @@ let print_handler =
    site=print_string;
    agent=print_string}
 
+let print_handler_error = 
+  {string=Printf.fprintf stderr "%s";
+   line=(fun () -> Printf.fprintf stderr "\n";flush stderr);
+   site=Printf.fprintf stderr "%s";
+   agent=Printf.fprintf stderr "%s"}
 
 type concrete_interface = SiteSet.t
 
@@ -130,7 +135,8 @@ let print_declaration print_string x =
 type rewriting_case = 
     {target_name:agent;
      forbidden_sites:SiteSet.t; 
-     substitutions:site list SiteMap.t}
+     substitutions:site list SiteMap.t;
+     lineage:(action list*(line option)) list}
      
 type solved_definition = (rewriting_case list) AgentMap.t
 
@@ -214,3 +220,20 @@ let dump_messages output log =
   List.iter 
     (fun x -> Printf.fprintf output "%s\n" x)
     (List.rev log.warning_messages)
+
+let string_of_lineage l =
+  match l with 
+      [] -> ""
+    | _ -> 
+	fst 
+	  begin 
+	    List.fold_left 
+	      (fun (s,bool) l -> 
+		 match snd l with 
+		     None -> s^(if bool then "," else "")^"?",true
+	     | Some i -> s^(if bool then "," else "")^(string_of_int i),true
+	      )
+	      ("lines:",false)
+	      l 
+	  end
+	  
