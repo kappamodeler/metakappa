@@ -42,6 +42,7 @@ type token =
   | REF of (int)
   | FLOAT of (float)
   | ID of (string)
+  | IS of (string)
   | KAPPA_MRK
   | LABEL of (string)
   | COMMENT of (string)

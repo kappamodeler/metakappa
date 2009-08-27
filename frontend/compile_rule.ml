@@ -40,7 +40,7 @@ let convert lines =
 		    vide (q,q') ((a,smash b d)::c)
 		| _ -> List.rev c,a,b
 	      in 
-	      vide (lhs,rhs) [] in 
+	      vide (List.rev lhs,List.rev rhs) [] in 
 	    let g  = 
 	      List.map 
 		(fun (a,b) -> 

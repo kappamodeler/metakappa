@@ -47,7 +47,7 @@ let sol_of_hsh hsh =
 %token OP_PAR CL_PAR OP_CONC CL_CONC OP_ACC CL_ACC
 %token <int> INT REF
 %token <float> FLOAT 
-%token <string> ID 
+%token <string> ID IS
 %token KAPPA_MRK
 %token <string> LABEL 
 %token <string> COMMENT
@@ -177,7 +177,7 @@ main:
 
   state_expr: /*empty*/ {fun f -> ""}
 | KAPPA_MRK id {fun f -> "~"^($2 f)}
-  ;
+| IS {fun f -> $1}  ;
 
   link_expr: /*empty*/ {fun f -> ""}
 | KAPPA_LNK INT {fun f -> "!"^(string_of_int $2)}

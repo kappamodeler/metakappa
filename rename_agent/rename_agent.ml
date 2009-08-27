@@ -12,8 +12,8 @@ let check_agent agent =
   scan interface_list SiteSet.empty  
 
 let rename_agent agent subs log = 
- let name = agent.agent_name in 
-   begin 
+  let name = agent.agent_name in 
+    begin 
      try 
        begin 
 	 let cases = AgentMap.find name subs in 
@@ -35,7 +35,7 @@ let rename_agent agent subs log =
 		    (fun prefix_set (oldsite,image)  -> 
 		       let newsites = 
 			 try SiteMap.find oldsite case.substitutions
-			 with Not_found -> [] in
+			 with Not_found -> [oldsite] in
 		       let extended_prefix_set = 
 			 List.fold_left 
 			   (fun set (eti,prefix,siteset)  -> 

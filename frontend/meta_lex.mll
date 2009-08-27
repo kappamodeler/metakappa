@@ -33,7 +33,7 @@ let real =
   (((['0'-'9']+ '.' ['0'-'9']*) | (['0'-'9']* '.' ['0'-'9']+)) ((['e' 'E'] ['+' '-'] ['0'-'9']+) | (['e' 'E'] ['0'-'9']+))) 
   | ((['0'-'9']+ '.' ['0'-'9']*) | (['0'-'9']* '.' ['0'-'9']+))   
 let id = (['a'-'z' 'A'-'Z' '0'-'9'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '^' '-']*)
-let internal_state = '~' (['0'-'9' 'a'-'z' 'A'-'Z']+)
+let internal_state = '~' ['0'-'9'] (['0'-'9' 'a'-'z' 'A'-'Z']*)
 
 
   rule token = parse
@@ -54,6 +54,7 @@ let internal_state = '~' (['0'-'9' 'a'-'z' 'A'-'Z']+)
     | real as f {FLOAT(float_of_string f)}
     | '\'' {let lab = read_label "" lexbuf in LABEL lab}
     | "%" {INSTANCE}
+    | internal_state as i {IS(i)}
     | id as str {ID(str)}
     | '@' {AT}
     | ',' {COMMA}

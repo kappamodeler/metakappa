@@ -24,7 +24,7 @@ let declare_full agent interface_database i =
     in 
     match int with None -> raise Not_found 
     | Some int -> 
-	if SiteSet.equal int interface 
+	if SiteSet.equal interface int 
 	then 
 	  Some  {interface_database 
 		with 
@@ -37,7 +37,7 @@ let declare_full agent interface_database i =
 	  failwith 
 	    (List.fold_left 
 	       (fun string i -> string^(string_of_int i)^";")
-	       ("Incombatible interfaces between line "^(string_of_line i))
+	       ("Incompatible interfaces for agent "^(agent.agent_name)^" between line "^(string_of_line i)^";")
 	       line)
   with 
     Not_found -> 
@@ -49,31 +49,31 @@ let check_rule rule interface_database i log =
   let f = 
     List.fold_left 
       (fun database ag -> 
-	match declare_full ag database i
+	 match declare_full ag database i
 	with None -> failwith ("Problem with rule "^rule.flag^" at line "^(string_of_int i))
-	| Some a -> a)
+	| Some a -> a) 
   in
   let g1 = 
     List.fold_left 
       (fun database ag -> 
-	let set = AgentSet.add ag.agent_name database.agents in 
-	if AgentSet.equal set database.agents 
-	then 
-	  database
-	else
-	  {database with agents = set}
-	  )
+	 let set = AgentSet.add ag.agent_name database.agents in 
+	   if AgentSet.equal set database.agents 
+	   then 
+	     database
+	   else
+	     {database with agents = set}
+      ) 
   in 
-  let g2 = 
+  let g2  = 
     List.fold_left 
       (fun database ag -> 
-	let set = AgentSet.add ag.agent_name database.agents in 
-	if AgentSet.equal set database.agents 
-	then 
-	  database
-	else
-	  {database with agents = set}
-	  )
+	 let set = AgentSet.add ag.agent_name database.agents in 
+	   if AgentSet.equal set database.agents 
+	   then 
+	     database
+	   else
+	     {database with agents = set}
+      ) 
   in 
   g2 
     (g2 
@@ -97,25 +97,27 @@ let rename_rule rule interface_database flagmap  log =
 	Not_found -> [] in 
     StringMap.add x (y::old) map in 
   let rename l log = 
-    List.fold_left 
-      (fun (prefix_list,log) a -> 
-	let sol,log = rename_agent a interface_database log  in 
-	(List.fold_left 
-	  (fun a (kappa_prefix,tag_prefix) -> 
-	    List.fold_left 
-	      (fun a (tag_suffix,lineage,kappa_suffix)  -> 
-		(kappa_suffix::kappa_prefix,["%",string_of_lineage lineage]::(tag_suffix::tag_prefix))::a)
-	      a 
-	      sol)
-	 [] 
-	  prefix_list,log))
-      ([[],[]],log) 
-      l 
+    let a,b = 
+      List.fold_left 
+	(fun (prefix_list,log) a -> 
+	   let sol,log = rename_agent a interface_database log  in 
+	     (List.fold_left 
+		(fun a (kappa_prefix,tag_prefix) -> 
+		 List.fold_left 
+		   (fun a (tag_suffix,lineage,kappa_suffix)  -> 
+		      (kappa_suffix::kappa_prefix,["%",string_of_lineage lineage]::(tag_suffix::tag_prefix))::a)
+		   a 
+		   sol)
+		[] 
+	      prefix_list,log))
+	([[],[]],log) 
+	l 
+    in a,b
   in 
   let check l = List.for_all (Rename_agent.check_agent) l in 
   let hand_side_common',log = rename rule.hand_side_common log in 
   let mod_left_hand_side',log = rename rule.mod_left_hand_side log in 
-  let mod_right_hand_side',log = rename rule.mod_right_hand_side log in 
+  let mod_right_hand_side',log = rename rule.mod_right_hand_side log in
   let rule_list = 
     if check rule.fixed_left_hand_side && check rule.fixed_right_hand_side 
     then 
@@ -139,9 +141,9 @@ let rename_rule rule interface_database flagmap  log =
 		     let flag' = add_flag (add_flag (add_flag rule.flag hs') left') right' in 
 		       {rule with 
 			  flag = flag' ;
-			  hand_side_common = hs ; 
-			  mod_left_hand_side = left ;
-			  mod_right_hand_side = right }::liste,
+			  hand_side_common = List.rev hs ; 
+			  mod_left_hand_side = List.rev left ;
+			  mod_right_hand_side = List.rev right }::liste,
 		     fadd rule.flag flag' flags)
 		  liste 
 		  mod_right_hand_side')
