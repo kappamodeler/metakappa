@@ -115,73 +115,91 @@
   87  var_kin : KAPPA_WLD
   88          | FLOAT
   89          | INFINITY
-  90          | INT
+  90          | id
+  91          | INT
 
-  91  intra_rate :
-  92             | OP_PAR FLOAT CL_PAR
-  93             | OP_PAR INT CL_PAR
-  94             | OP_PAR INFINITY CL_PAR
+  92  intra_rate :
+  93             | OP_PAR FLOAT CL_PAR
+  94             | OP_PAR INT CL_PAR
+  95             | OP_PAR INFINITY CL_PAR
 
-  95  gen_expr : agent_expr newline
-  96           | id EQUAL id newline
-  97           | id EQUAL id OP_CONC instruction_list CL_CONC newline
+  96  gen_expr : agent_expr newline
+  97           | id EQUAL id newline
+  98           | id EQUAL id OP_CONC instruction_list CL_CONC newline
 
-  98  instruction_list :
-  99                   | instruction_ne_list
+  99  instruction_list :
+ 100                   | instruction_ne_list
 
- 100  instruction_ne_list : instruction
- 101                      | instruction instruction_ne_list
+ 101  instruction_ne_list : instruction
+ 102                      | instruction instruction_ne_list
 
- 102  instruction : PLUS id
- 103              | MINUS id
- 104              | subs
- 105              | id SET id
+ 103  instruction : PLUS id
+ 104              | MINUS id
+ 105              | subs
+ 106              | id SET id
 
- 106  subs : id subs_symbol OP_ACC id_list CL_ACC
- 107       | OP_ACC id_list CL_ACC subs_symbol id
+ 107  subs : id subs_symbol OP_ACC id_list CL_ACC
+ 108       | OP_ACC id_list CL_ACC subs_symbol id
 
- 108  id_list :
- 109          | id_non_empty_list
+ 109  id_list :
+ 110          | id_non_empty_list
 
- 110  id_non_empty_list : id
- 111                    | id id_non_empty_list
+ 111  id_non_empty_list : id
+ 112                    | id id_non_empty_list
 
- 112  newline : NEWLINE
- 113          | COMMENT
- 114          | EOF
+ 113  newline : NEWLINE
+ 114          | COMMENT
+ 115          | EOF
 
- 115  newline2 : NEWLINE
- 116           | COMMENT
+ 116  newline2 : NEWLINE
+ 117           | COMMENT
 
- 117  id : ID
- 118     | ID INSTANCE INT
+ 118  id : ID
+ 119     | ID INSTANCE INT
 
- 119  macro_def : id OP_PAR idlistcomma CL_PAR newline
+ 120  macro_def : id OP_PAR idlistcomma CL_PAR newline
 
- 120  macro_call : id OP_PAR idlistlist CL_PAR newline
+ 121  idvar : FLOAT
+ 122        | INFINITY
+ 123        | id
+ 124        | INT
 
- 121  idlistcomma :
- 122              | ne_idlistcomma
+ 125  macro_call : idvar OP_PAR idvarlistlist CL_PAR newline
 
- 123  ne_idlistcomma : id
- 124                 | id COMMA ne_idlistcomma
+ 126  idlistcomma :
+ 127              | ne_idlistcomma
 
- 125  idlist :
- 126         | ne_idlist
+ 128  ne_idlistcomma : id
+ 129                 | id COMMA ne_idlistcomma
 
- 127  ne_idlist : id
- 128            | id ne_idlist
+ 130  idlist :
+ 131         | ne_idlist
 
- 129  idlistlist :
- 130             | ne_idlistlist
+ 132  ne_idlist : id
+ 133            | id ne_idlist
 
- 131  ne_idlistlist : ne_idlist
- 132                | idlist COMMA idlistlist
+ 134  idvarlist :
+ 135            | ne_idvarlist
 
- 133  subs_symbol : DIVIDE
- 134              | ANTISLASH
+ 136  ne_idvarlist : idvar
+ 137               | idvar ne_idvarlist
 
- 135  %entry% : '\001' main
+ 138  idlistlist :
+ 139             | ne_idlistlist
+
+ 140  idvarlistlist :
+ 141                | ne_idvarlistlist
+
+ 142  ne_idlistlist : ne_idlist
+ 143                | idlist COMMA idlistlist
+
+ 144  ne_idvarlistlist : ne_idvarlist
+ 145                   | idvarlist COMMA idvarlistlist
+
+ 146  subs_symbol : DIVIDE
+ 147              | ANTISLASH
+
+ 148  %entry% : '\001' main
 
 state 0
 	$accept : . %entry% $end  (0)
@@ -193,7 +211,7 @@ state 0
 
 
 state 1
-	%entry% : '\001' . main  (135)
+	%entry% : '\001' . main  (148)
 	sol_expr : .  (72)
 
 	error  shift 3
@@ -282,9 +300,9 @@ state 6
 
 
 state 7
-	newline2 : NEWLINE .  (115)
+	newline2 : NEWLINE .  (116)
 
-	.  reduce 115
+	.  reduce 116
 
 
 state 8
@@ -351,11 +369,15 @@ state 12
 state 13
 	line : EXPAND_MAC_LINE . macro_call  (12)
 
+	INFINITY  shift 60
+	INT  shift 61
+	FLOAT  shift 62
 	ID  shift 16
 	.  error
 
-	macro_call  goto 60
-	id  goto 61
+	macro_call  goto 63
+	id  goto 64
+	idvar  goto 65
 
 
 state 14
@@ -372,39 +394,42 @@ state 15
 	.  error
 
 	id  goto 23
-	ne_sol_expr  goto 62
+	ne_sol_expr  goto 66
 	agent_expr  goto 25
 
 
 state 16
-	id : ID .  (117)
-	id : ID . INSTANCE INT  (118)
+	id : ID .  (118)
+	id : ID . INSTANCE INT  (119)
 
-	INSTANCE  shift 63
-	error  reduce 117
-	NEWLINE  reduce 117
-	EOF  reduce 117
-	MULT  reduce 117
-	DIVIDE  reduce 117
-	ANTISLASH  reduce 117
-	PLUS  reduce 117
-	MINUS  reduce 117
-	COMMA  reduce 117
-	SEMICOLON  reduce 117
-	SET  reduce 117
-	EQUAL  reduce 117
-	KAPPA_LNK  reduce 117
-	KAPPA_WLD  reduce 117
-	OP_PAR  reduce 117
-	CL_PAR  reduce 117
-	OP_CONC  reduce 117
-	CL_CONC  reduce 117
-	OP_ACC  reduce 117
-	CL_ACC  reduce 117
-	ID  reduce 117
-	IS  reduce 117
-	KAPPA_MRK  reduce 117
-	COMMENT  reduce 117
+	INSTANCE  shift 67
+	error  reduce 118
+	NEWLINE  reduce 118
+	EOF  reduce 118
+	MULT  reduce 118
+	DIVIDE  reduce 118
+	ANTISLASH  reduce 118
+	PLUS  reduce 118
+	MINUS  reduce 118
+	COMMA  reduce 118
+	SEMICOLON  reduce 118
+	SET  reduce 118
+	EQUAL  reduce 118
+	INFINITY  reduce 118
+	KAPPA_LNK  reduce 118
+	KAPPA_WLD  reduce 118
+	OP_PAR  reduce 118
+	CL_PAR  reduce 118
+	OP_CONC  reduce 118
+	CL_CONC  reduce 118
+	OP_ACC  reduce 118
+	CL_ACC  reduce 118
+	INT  reduce 118
+	FLOAT  reduce 118
+	ID  reduce 118
+	IS  reduce 118
+	KAPPA_MRK  reduce 118
+	COMMENT  reduce 118
 
 
 state 17
@@ -419,20 +444,20 @@ state 17
 	id  goto 23
 	ne_sol_expr  goto 24
 	agent_expr  goto 25
-	rule_expr  goto 64
+	rule_expr  goto 68
 	sol_expr  goto 27
 
 
 state 18
-	newline2 : COMMENT .  (116)
+	newline2 : COMMENT .  (117)
 
-	.  reduce 116
+	.  reduce 117
 
 
 state 19
-	%entry% : '\001' main .  (135)
+	%entry% : '\001' main .  (148)
 
-	.  reduce 135
+	.  reduce 148
 
 
 state 20
@@ -460,7 +485,7 @@ state 20
 	KAPPA_LRAR  reduce 72
 	KAPPA_RAR  reduce 72
 
-	main  goto 65
+	main  goto 69
 	line  goto 20
 	newline2  goto 21
 	named_rule_expr  goto 22
@@ -487,7 +512,7 @@ state 23
 	agent_expr : id . OP_PAR interface_expr CL_PAR  (53)
 	agent_expr : id . OP_PAR interface_expr error  (54)
 
-	OP_PAR  shift 66
+	OP_PAR  shift 70
 	.  error
 
 
@@ -495,7 +520,7 @@ state 24
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 	sol_expr : ne_sol_expr .  (73)
 
-	COMMA  shift 67
+	COMMA  shift 71
 	NEWLINE  reduce 73
 	EOF  reduce 73
 	AT  reduce 73
@@ -519,48 +544,48 @@ state 26
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 68
+	newline  goto 72
 
 
 state 27
 	rule_expr : sol_expr . KAPPA_RAR sol_expr kin_expr1 constraint_expr  (74)
 	rule_expr : sol_expr . KAPPA_LRAR sol_expr kin_expr2 constraint_expr  (75)
 
-	KAPPA_LRAR  shift 69
-	KAPPA_RAR  shift 70
+	KAPPA_LRAR  shift 73
+	KAPPA_RAR  shift 74
 	.  error
 
 
 state 28
-	newline : NEWLINE .  (112)
+	newline : NEWLINE .  (113)
 
-	.  reduce 112
+	.  reduce 113
 
 
 state 29
-	newline : EOF .  (114)
+	newline : EOF .  (115)
 
-	.  reduce 114
+	.  reduce 115
 
 
 state 30
 	mult_sol_expr : INT . MULT ne_sol_expr  (47)
 
-	MULT  shift 71
+	MULT  shift 75
 	.  error
 
 
 state 31
 	mult_sol_expr : FLOAT . MULT ne_sol_expr  (48)
 
-	MULT  shift 72
+	MULT  shift 76
 	.  error
 
 
 state 32
-	newline : COMMENT .  (113)
+	newline : COMMENT .  (114)
 
-	.  reduce 113
+	.  reduce 114
 
 
 state 33
@@ -583,14 +608,14 @@ state 35
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 73
+	newline  goto 77
 
 
 state 36
 	mult_sol_expr : ne_sol_expr .  (49)
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 
-	COMMA  shift 67
+	COMMA  shift 71
 	NEWLINE  reduce 49
 	EOF  reduce 49
 	COMMENT  reduce 49
@@ -607,9 +632,9 @@ state 37
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 74
+	newline  goto 78
 	id  goto 23
-	ne_sol_expr  goto 75
+	ne_sol_expr  goto 79
 	agent_expr  goto 25
 
 
@@ -625,11 +650,11 @@ state 39
 
 	NEWLINE  shift 28
 	EOF  shift 29
-	COMMA  shift 67
+	COMMA  shift 71
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 76
+	newline  goto 80
 
 
 state 40
@@ -640,7 +665,7 @@ state 40
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 77
+	newline  goto 81
 
 
 state 41
@@ -660,8 +685,8 @@ state 43
 	time_ineq : TIME . GREATER INT  (43)
 	time_ineq : TIME . error  (44)
 
-	error  shift 78
-	GREATER  shift 79
+	error  shift 82
+	GREATER  shift 83
 	.  error
 
 
@@ -674,7 +699,7 @@ state 44
 	FLOAT  shift 47
 	.  error
 
-	conc_expr  goto 80
+	conc_expr  goto 84
 	conc_val  goto 52
 
 
@@ -682,8 +707,8 @@ state 45
 	conc_val : OP_CONC . LABEL CL_CONC  (40)
 	conc_val : OP_CONC . error  (41)
 
-	error  shift 81
-	LABEL  shift 82
+	error  shift 85
+	LABEL  shift 86
 	.  error
 
 
@@ -708,14 +733,14 @@ state 48
 state 49
 	modif_expr : concentration_ineq . DO assignement newline  (16)
 
-	DO  shift 83
+	DO  shift 87
 	.  error
 
 
 state 50
 	modif_expr : time_ineq . DO assignement newline  (17)
 
-	DO  shift 84
+	DO  shift 88
 	.  error
 
 
@@ -723,8 +748,8 @@ state 51
 	concentration_ineq : conc_expr . GREATER conc_expr  (31)
 	concentration_ineq : conc_expr . SMALLER conc_expr  (32)
 
-	GREATER  shift 85
-	SMALLER  shift 86
+	GREATER  shift 89
+	SMALLER  shift 90
 	.  error
 
 
@@ -734,9 +759,9 @@ state 52
 	conc_expr : conc_val . PLUS conc_expr  (36)
 	conc_expr : conc_val .  (37)
 
-	MULT  shift 87
-	DIVIDE  shift 88
-	PLUS  shift 89
+	MULT  shift 91
+	DIVIDE  shift 92
+	PLUS  shift 93
 	GREATER  reduce 37
 	SMALLER  reduce 37
 	DO  reduce 37
@@ -752,23 +777,23 @@ state 53
 state 54
 	agent_expr : id . OP_PAR interface_expr CL_PAR  (53)
 	agent_expr : id . OP_PAR interface_expr error  (54)
-	gen_expr : id . EQUAL id newline  (96)
-	gen_expr : id . EQUAL id OP_CONC instruction_list CL_CONC newline  (97)
+	gen_expr : id . EQUAL id newline  (97)
+	gen_expr : id . EQUAL id OP_CONC instruction_list CL_CONC newline  (98)
 
-	EQUAL  shift 90
-	OP_PAR  shift 66
+	EQUAL  shift 94
+	OP_PAR  shift 70
 	.  error
 
 
 state 55
-	gen_expr : agent_expr . newline  (95)
+	gen_expr : agent_expr . newline  (96)
 
 	NEWLINE  shift 28
 	EOF  shift 29
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 91
+	newline  goto 95
 
 
 state 56
@@ -784,9 +809,9 @@ state 57
 
 
 state 58
-	macro_def : id . OP_PAR idlistcomma CL_PAR newline  (119)
+	macro_def : id . OP_PAR idlistcomma CL_PAR newline  (120)
 
-	OP_PAR  shift 92
+	OP_PAR  shift 96
 	.  error
 
 
@@ -797,35 +822,59 @@ state 59
 
 
 state 60
+	idvar : INFINITY .  (122)
+
+	.  reduce 122
+
+
+state 61
+	idvar : INT .  (124)
+
+	.  reduce 124
+
+
+state 62
+	idvar : FLOAT .  (121)
+
+	.  reduce 121
+
+
+state 63
 	line : EXPAND_MAC_LINE macro_call .  (12)
 
 	.  reduce 12
 
 
-state 61
-	macro_call : id . OP_PAR idlistlist CL_PAR newline  (120)
+state 64
+	idvar : id .  (123)
 
-	OP_PAR  shift 93
+	.  reduce 123
+
+
+state 65
+	macro_call : idvar . OP_PAR idvarlistlist CL_PAR newline  (125)
+
+	OP_PAR  shift 97
 	.  error
 
 
-state 62
+state 66
 	ne_sol_expr : OP_PAR ne_sol_expr . CL_PAR  (50)
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 
-	COMMA  shift 67
-	CL_PAR  shift 94
+	COMMA  shift 71
+	CL_PAR  shift 98
 	.  error
 
 
-state 63
-	id : ID INSTANCE . INT  (118)
+state 67
+	id : ID INSTANCE . INT  (119)
 
-	INT  shift 95
+	INT  shift 99
 	.  error
 
 
-state 64
+state 68
 	named_rule_expr : LABEL rule_expr . newline  (70)
 
 	NEWLINE  shift 28
@@ -833,16 +882,16 @@ state 64
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 96
+	newline  goto 100
 
 
-state 65
+state 69
 	main : line main .  (1)
 
 	.  reduce 1
 
 
-state 66
+state 70
 	agent_expr : id OP_PAR . interface_expr CL_PAR  (53)
 	agent_expr : id OP_PAR . interface_expr error  (54)
 	interface_expr : .  (55)
@@ -851,27 +900,27 @@ state 66
 	error  reduce 55
 	CL_PAR  reduce 55
 
-	id  goto 97
-	interface_expr  goto 98
+	id  goto 101
+	interface_expr  goto 102
 
 
-state 67
+state 71
 	ne_sol_expr : ne_sol_expr COMMA . agent_expr  (52)
 
 	ID  shift 16
 	.  error
 
 	id  goto 23
-	agent_expr  goto 99
+	agent_expr  goto 103
 
 
-state 68
+state 72
 	named_rule_expr : rule_expr newline .  (71)
 
 	.  reduce 71
 
 
-state 69
+state 73
 	rule_expr : sol_expr KAPPA_LRAR . sol_expr kin_expr2 constraint_expr  (75)
 	sol_expr : .  (72)
 
@@ -886,10 +935,10 @@ state 69
 	id  goto 23
 	ne_sol_expr  goto 24
 	agent_expr  goto 25
-	sol_expr  goto 100
+	sol_expr  goto 104
 
 
-state 70
+state 74
 	rule_expr : sol_expr KAPPA_RAR . sol_expr kin_expr1 constraint_expr  (74)
 	sol_expr : .  (72)
 
@@ -904,10 +953,10 @@ state 70
 	id  goto 23
 	ne_sol_expr  goto 24
 	agent_expr  goto 25
-	sol_expr  goto 101
+	sol_expr  goto 105
 
 
-state 71
+state 75
 	mult_sol_expr : INT MULT . ne_sol_expr  (47)
 
 	OP_PAR  shift 15
@@ -915,11 +964,11 @@ state 71
 	.  error
 
 	id  goto 23
-	ne_sol_expr  goto 102
+	ne_sol_expr  goto 106
 	agent_expr  goto 25
 
 
-state 72
+state 76
 	mult_sol_expr : FLOAT MULT . ne_sol_expr  (48)
 
 	OP_PAR  shift 15
@@ -927,154 +976,102 @@ state 72
 	.  error
 
 	id  goto 23
-	ne_sol_expr  goto 103
+	ne_sol_expr  goto 107
 	agent_expr  goto 25
 
 
-state 73
+state 77
 	init_expr : mult_sol_expr newline .  (46)
 
 	.  reduce 46
 
 
-state 74
+state 78
 	obs_expr : LABEL newline .  (66)
 
 	.  reduce 66
 
 
-state 75
+state 79
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 	obs_expr : LABEL ne_sol_expr . newline  (68)
 
 	NEWLINE  shift 28
 	EOF  shift 29
-	COMMA  shift 67
+	COMMA  shift 71
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 104
+	newline  goto 108
 
 
-state 76
+state 80
 	obs_expr : ne_sol_expr newline .  (67)
 
 	.  reduce 67
 
 
-state 77
+state 81
 	story_expr : LABEL newline .  (69)
 
 	.  reduce 69
 
 
-state 78
+state 82
 	time_ineq : TIME error .  (44)
 
 	.  reduce 44
 
 
-state 79
+state 83
 	time_ineq : TIME GREATER . FLOAT  (42)
 	time_ineq : TIME GREATER . INT  (43)
 
-	INT  shift 105
-	FLOAT  shift 106
+	INT  shift 109
+	FLOAT  shift 110
 	.  error
 
 
-state 80
+state 84
 	conc_expr : OP_PAR conc_expr . CL_PAR  (33)
 
-	CL_PAR  shift 107
+	CL_PAR  shift 111
 	.  error
 
 
-state 81
+state 85
 	conc_val : OP_CONC error .  (41)
 
 	.  reduce 41
 
 
-state 82
+state 86
 	conc_val : OP_CONC LABEL . CL_CONC  (40)
 
-	CL_CONC  shift 108
+	CL_CONC  shift 112
 	.  error
-
-
-state 83
-	modif_expr : concentration_ineq DO . assignement newline  (16)
-
-	LABEL  shift 109
-	.  error
-
-	assignement  goto 110
-
-
-state 84
-	modif_expr : time_ineq DO . assignement newline  (17)
-
-	LABEL  shift 109
-	.  error
-
-	assignement  goto 111
-
-
-state 85
-	concentration_ineq : conc_expr GREATER . conc_expr  (31)
-
-	OP_PAR  shift 44
-	OP_CONC  shift 45
-	INT  shift 46
-	FLOAT  shift 47
-	.  error
-
-	conc_expr  goto 112
-	conc_val  goto 52
-
-
-state 86
-	concentration_ineq : conc_expr SMALLER . conc_expr  (32)
-
-	OP_PAR  shift 44
-	OP_CONC  shift 45
-	INT  shift 46
-	FLOAT  shift 47
-	.  error
-
-	conc_expr  goto 113
-	conc_val  goto 52
 
 
 state 87
-	conc_expr : conc_val MULT . conc_expr  (34)
+	modif_expr : concentration_ineq DO . assignement newline  (16)
 
-	OP_PAR  shift 44
-	OP_CONC  shift 45
-	INT  shift 46
-	FLOAT  shift 47
+	LABEL  shift 113
 	.  error
 
-	conc_expr  goto 114
-	conc_val  goto 52
+	assignement  goto 114
 
 
 state 88
-	conc_expr : conc_val DIVIDE . conc_expr  (35)
+	modif_expr : time_ineq DO . assignement newline  (17)
 
-	OP_PAR  shift 44
-	OP_CONC  shift 45
-	INT  shift 46
-	FLOAT  shift 47
+	LABEL  shift 113
 	.  error
 
-	conc_expr  goto 115
-	conc_val  goto 52
+	assignement  goto 115
 
 
 state 89
-	conc_expr : conc_val PLUS . conc_expr  (36)
+	concentration_ineq : conc_expr GREATER . conc_expr  (31)
 
 	OP_PAR  shift 44
 	OP_CONC  shift 45
@@ -1087,183 +1084,239 @@ state 89
 
 
 state 90
-	gen_expr : id EQUAL . id newline  (96)
-	gen_expr : id EQUAL . id OP_CONC instruction_list CL_CONC newline  (97)
+	concentration_ineq : conc_expr SMALLER . conc_expr  (32)
+
+	OP_PAR  shift 44
+	OP_CONC  shift 45
+	INT  shift 46
+	FLOAT  shift 47
+	.  error
+
+	conc_expr  goto 117
+	conc_val  goto 52
+
+
+state 91
+	conc_expr : conc_val MULT . conc_expr  (34)
+
+	OP_PAR  shift 44
+	OP_CONC  shift 45
+	INT  shift 46
+	FLOAT  shift 47
+	.  error
+
+	conc_expr  goto 118
+	conc_val  goto 52
+
+
+state 92
+	conc_expr : conc_val DIVIDE . conc_expr  (35)
+
+	OP_PAR  shift 44
+	OP_CONC  shift 45
+	INT  shift 46
+	FLOAT  shift 47
+	.  error
+
+	conc_expr  goto 119
+	conc_val  goto 52
+
+
+state 93
+	conc_expr : conc_val PLUS . conc_expr  (36)
+
+	OP_PAR  shift 44
+	OP_CONC  shift 45
+	INT  shift 46
+	FLOAT  shift 47
+	.  error
+
+	conc_expr  goto 120
+	conc_val  goto 52
+
+
+state 94
+	gen_expr : id EQUAL . id newline  (97)
+	gen_expr : id EQUAL . id OP_CONC instruction_list CL_CONC newline  (98)
 
 	ID  shift 16
 	.  error
 
-	id  goto 117
-
-
-state 91
-	gen_expr : agent_expr newline .  (95)
-
-	.  reduce 95
-
-
-state 92
-	macro_def : id OP_PAR . idlistcomma CL_PAR newline  (119)
-	idlistcomma : .  (121)
-
-	ID  shift 16
-	CL_PAR  reduce 121
-
-	id  goto 118
-	idlistcomma  goto 119
-	ne_idlistcomma  goto 120
-
-
-state 93
-	macro_call : id OP_PAR . idlistlist CL_PAR newline  (120)
-	idlist : .  (125)
-	idlistlist : .  (129)
-
-	ID  shift 16
-	COMMA  reduce 125
-	CL_PAR  reduce 129
-
 	id  goto 121
-	idlistlist  goto 122
-	idlist  goto 123
-	ne_idlist  goto 124
-	ne_idlistlist  goto 125
 
 
-state 94
+state 95
+	gen_expr : agent_expr newline .  (96)
+
+	.  reduce 96
+
+
+state 96
+	macro_def : id OP_PAR . idlistcomma CL_PAR newline  (120)
+	idlistcomma : .  (126)
+
+	ID  shift 16
+	CL_PAR  reduce 126
+
+	id  goto 122
+	idlistcomma  goto 123
+	ne_idlistcomma  goto 124
+
+
+state 97
+	macro_call : idvar OP_PAR . idvarlistlist CL_PAR newline  (125)
+	idvarlist : .  (134)
+	idvarlistlist : .  (140)
+
+	INFINITY  shift 60
+	INT  shift 61
+	FLOAT  shift 62
+	ID  shift 16
+	COMMA  reduce 134
+	CL_PAR  reduce 140
+
+	id  goto 64
+	idvar  goto 125
+	idvarlistlist  goto 126
+	idvarlist  goto 127
+	ne_idvarlist  goto 128
+	ne_idvarlistlist  goto 129
+
+
+state 98
 	ne_sol_expr : OP_PAR ne_sol_expr CL_PAR .  (50)
 
 	.  reduce 50
 
 
-state 95
-	id : ID INSTANCE INT .  (118)
+state 99
+	id : ID INSTANCE INT .  (119)
 
-	.  reduce 118
+	.  reduce 119
 
 
-state 96
+state 100
 	named_rule_expr : LABEL rule_expr newline .  (70)
 
 	.  reduce 70
 
 
-state 97
+state 101
 	interface_expr : id . state_expr link_expr  (56)
 	interface_expr : id . state_expr link_expr COMMA interface_expr  (57)
 	state_expr : .  (58)
 
-	IS  shift 126
-	KAPPA_MRK  shift 127
+	IS  shift 130
+	KAPPA_MRK  shift 131
 	error  reduce 58
 	COMMA  reduce 58
 	KAPPA_LNK  reduce 58
 	KAPPA_WLD  reduce 58
 	CL_PAR  reduce 58
 
-	state_expr  goto 128
+	state_expr  goto 132
 
 
-state 98
+state 102
 	agent_expr : id OP_PAR interface_expr . CL_PAR  (53)
 	agent_expr : id OP_PAR interface_expr . error  (54)
 
-	error  shift 129
-	CL_PAR  shift 130
+	error  shift 133
+	CL_PAR  shift 134
 	.  error
 
 
-state 99
+state 103
 	ne_sol_expr : ne_sol_expr COMMA agent_expr .  (52)
 
 	.  reduce 52
 
 
-state 100
+state 104
 	rule_expr : sol_expr KAPPA_LRAR sol_expr . kin_expr2 constraint_expr  (75)
 	kin_expr2 : .  (84)
 
-	AT  shift 131
+	AT  shift 135
 	NEWLINE  reduce 84
 	EOF  reduce 84
 	OP_CONC  reduce 84
 	COMMENT  reduce 84
 
-	kin_expr2  goto 132
+	kin_expr2  goto 136
 
 
-state 101
+state 105
 	rule_expr : sol_expr KAPPA_RAR sol_expr . kin_expr1 constraint_expr  (74)
 	kin_expr1 : .  (81)
 
-	AT  shift 133
+	AT  shift 137
 	NEWLINE  reduce 81
 	EOF  reduce 81
 	OP_CONC  reduce 81
 	COMMENT  reduce 81
 
-	kin_expr1  goto 134
+	kin_expr1  goto 138
 
 
-state 102
+state 106
 	mult_sol_expr : INT MULT ne_sol_expr .  (47)
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 
-	COMMA  shift 67
+	COMMA  shift 71
 	NEWLINE  reduce 47
 	EOF  reduce 47
 	COMMENT  reduce 47
 
 
-state 103
+state 107
 	mult_sol_expr : FLOAT MULT ne_sol_expr .  (48)
 	ne_sol_expr : ne_sol_expr . COMMA agent_expr  (52)
 
-	COMMA  shift 67
+	COMMA  shift 71
 	NEWLINE  reduce 48
 	EOF  reduce 48
 	COMMENT  reduce 48
 
 
-state 104
+state 108
 	obs_expr : LABEL ne_sol_expr newline .  (68)
 
 	.  reduce 68
 
 
-state 105
+state 109
 	time_ineq : TIME GREATER INT .  (43)
 
 	.  reduce 43
 
 
-state 106
+state 110
 	time_ineq : TIME GREATER FLOAT .  (42)
 
 	.  reduce 42
 
 
-state 107
+state 111
 	conc_expr : OP_PAR conc_expr CL_PAR .  (33)
 
 	.  reduce 33
 
 
-state 108
+state 112
 	conc_val : OP_CONC LABEL CL_CONC .  (40)
 
 	.  reduce 40
 
 
-state 109
+state 113
 	assignement : LABEL . SET assign_expr  (19)
 	assignement : LABEL . SET error  (20)
 
-	SET  shift 135
+	SET  shift 139
 	.  error
 
 
-state 110
+state 114
 	modif_expr : concentration_ineq DO assignement . newline  (16)
 
 	NEWLINE  shift 28
@@ -1271,10 +1324,10 @@ state 110
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 136
+	newline  goto 140
 
 
-state 111
+state 115
 	modif_expr : time_ineq DO assignement . newline  (17)
 
 	NEWLINE  shift 28
@@ -1282,620 +1335,638 @@ state 111
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 137
+	newline  goto 141
 
 
-state 112
+state 116
 	concentration_ineq : conc_expr GREATER conc_expr .  (31)
 
 	.  reduce 31
 
 
-state 113
+state 117
 	concentration_ineq : conc_expr SMALLER conc_expr .  (32)
 
 	.  reduce 32
 
 
-state 114
+state 118
 	conc_expr : conc_val MULT conc_expr .  (34)
 
 	.  reduce 34
 
 
-state 115
+state 119
 	conc_expr : conc_val DIVIDE conc_expr .  (35)
 
 	.  reduce 35
 
 
-state 116
+state 120
 	conc_expr : conc_val PLUS conc_expr .  (36)
 
 	.  reduce 36
 
 
-state 117
-	gen_expr : id EQUAL id . newline  (96)
-	gen_expr : id EQUAL id . OP_CONC instruction_list CL_CONC newline  (97)
+state 121
+	gen_expr : id EQUAL id . newline  (97)
+	gen_expr : id EQUAL id . OP_CONC instruction_list CL_CONC newline  (98)
 
 	NEWLINE  shift 28
 	EOF  shift 29
-	OP_CONC  shift 138
+	OP_CONC  shift 142
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 139
-
-
-state 118
-	ne_idlistcomma : id .  (123)
-	ne_idlistcomma : id . COMMA ne_idlistcomma  (124)
-
-	COMMA  shift 140
-	CL_PAR  reduce 123
-
-
-state 119
-	macro_def : id OP_PAR idlistcomma . CL_PAR newline  (119)
-
-	CL_PAR  shift 141
-	.  error
-
-
-state 120
-	idlistcomma : ne_idlistcomma .  (122)
-
-	.  reduce 122
-
-
-state 121
-	ne_idlist : id .  (127)
-	ne_idlist : id . ne_idlist  (128)
-
-	ID  shift 16
-	COMMA  reduce 127
-	CL_PAR  reduce 127
-
-	id  goto 121
-	ne_idlist  goto 142
+	newline  goto 143
 
 
 state 122
-	macro_call : id OP_PAR idlistlist . CL_PAR newline  (120)
+	ne_idlistcomma : id .  (128)
+	ne_idlistcomma : id . COMMA ne_idlistcomma  (129)
 
-	CL_PAR  shift 143
-	.  error
+	COMMA  shift 144
+	CL_PAR  reduce 128
 
 
 state 123
-	ne_idlistlist : idlist . COMMA idlistlist  (132)
+	macro_def : id OP_PAR idlistcomma . CL_PAR newline  (120)
 
-	COMMA  shift 144
+	CL_PAR  shift 145
 	.  error
 
 
 state 124
-	idlist : ne_idlist .  (126)
-	ne_idlistlist : ne_idlist .  (131)
+	idlistcomma : ne_idlistcomma .  (127)
 
-	COMMA  reduce 126
-	CL_PAR  reduce 131
+	.  reduce 127
 
 
 state 125
-	idlistlist : ne_idlistlist .  (130)
+	ne_idvarlist : idvar .  (136)
+	ne_idvarlist : idvar . ne_idvarlist  (137)
 
-	.  reduce 130
+	INFINITY  shift 60
+	INT  shift 61
+	FLOAT  shift 62
+	ID  shift 16
+	COMMA  reduce 136
+	CL_PAR  reduce 136
+
+	id  goto 64
+	idvar  goto 125
+	ne_idvarlist  goto 146
 
 
 state 126
+	macro_call : idvar OP_PAR idvarlistlist . CL_PAR newline  (125)
+
+	CL_PAR  shift 147
+	.  error
+
+
+state 127
+	ne_idvarlistlist : idvarlist . COMMA idvarlistlist  (145)
+
+	COMMA  shift 148
+	.  error
+
+
+state 128
+	idvarlist : ne_idvarlist .  (135)
+	ne_idvarlistlist : ne_idvarlist .  (144)
+
+	COMMA  reduce 135
+	CL_PAR  reduce 144
+
+
+state 129
+	idvarlistlist : ne_idvarlistlist .  (141)
+
+	.  reduce 141
+
+
+state 130
 	state_expr : IS .  (60)
 
 	.  reduce 60
 
 
-state 127
+state 131
 	state_expr : KAPPA_MRK . id  (59)
 
 	ID  shift 16
 	.  error
 
-	id  goto 145
+	id  goto 149
 
 
-state 128
+state 132
 	interface_expr : id state_expr . link_expr  (56)
 	interface_expr : id state_expr . link_expr COMMA interface_expr  (57)
 	link_expr : .  (61)
 
-	KAPPA_LNK  shift 146
-	KAPPA_WLD  shift 147
+	KAPPA_LNK  shift 150
+	KAPPA_WLD  shift 151
 	error  reduce 61
 	COMMA  reduce 61
 	CL_PAR  reduce 61
 
-	link_expr  goto 148
+	link_expr  goto 152
 
 
-state 129
+state 133
 	agent_expr : id OP_PAR interface_expr error .  (54)
 
 	.  reduce 54
 
 
-state 130
+state 134
 	agent_expr : id OP_PAR interface_expr CL_PAR .  (53)
 
 	.  reduce 53
 
 
-state 131
+state 135
 	kin_expr2 : AT . var_kin intra_rate COMMA var_kin  (85)
 	kin_expr2 : AT . error  (86)
 
-	error  shift 149
-	INFINITY  shift 150
-	KAPPA_WLD  shift 151
-	INT  shift 152
-	FLOAT  shift 153
-	.  error
-
-	var_kin  goto 154
-
-
-state 132
-	rule_expr : sol_expr KAPPA_LRAR sol_expr kin_expr2 . constraint_expr  (75)
-	constraint_expr : .  (76)
-
-	OP_CONC  shift 155
-	NEWLINE  reduce 76
-	EOF  reduce 76
-	COMMENT  reduce 76
-
-	constraint_expr  goto 156
-
-
-state 133
-	kin_expr1 : AT . var_kin intra_rate  (82)
-	kin_expr1 : AT . error  (83)
-
-	error  shift 157
-	INFINITY  shift 150
-	KAPPA_WLD  shift 151
-	INT  shift 152
-	FLOAT  shift 153
-	.  error
-
-	var_kin  goto 158
-
-
-state 134
-	rule_expr : sol_expr KAPPA_RAR sol_expr kin_expr1 . constraint_expr  (74)
-	constraint_expr : .  (76)
-
-	OP_CONC  shift 155
-	NEWLINE  reduce 76
-	EOF  reduce 76
-	COMMENT  reduce 76
-
-	constraint_expr  goto 159
-
-
-state 135
-	assignement : LABEL SET . assign_expr  (19)
-	assignement : LABEL SET . error  (20)
-
-	error  shift 160
-	INFINITY  shift 161
-	OP_PAR  shift 162
-	INT  shift 163
-	FLOAT  shift 164
+	error  shift 153
+	INFINITY  shift 154
+	KAPPA_WLD  shift 155
+	INT  shift 156
+	FLOAT  shift 157
 	ID  shift 16
-	LABEL  shift 165
 	.  error
 
-	assign_expr  goto 166
-	assign_val  goto 167
-	id  goto 168
+	id  goto 158
+	var_kin  goto 159
 
 
 state 136
+	rule_expr : sol_expr KAPPA_LRAR sol_expr kin_expr2 . constraint_expr  (75)
+	constraint_expr : .  (76)
+
+	OP_CONC  shift 160
+	NEWLINE  reduce 76
+	EOF  reduce 76
+	COMMENT  reduce 76
+
+	constraint_expr  goto 161
+
+
+state 137
+	kin_expr1 : AT . var_kin intra_rate  (82)
+	kin_expr1 : AT . error  (83)
+
+	error  shift 162
+	INFINITY  shift 154
+	KAPPA_WLD  shift 155
+	INT  shift 156
+	FLOAT  shift 157
+	ID  shift 16
+	.  error
+
+	id  goto 158
+	var_kin  goto 163
+
+
+state 138
+	rule_expr : sol_expr KAPPA_RAR sol_expr kin_expr1 . constraint_expr  (74)
+	constraint_expr : .  (76)
+
+	OP_CONC  shift 160
+	NEWLINE  reduce 76
+	EOF  reduce 76
+	COMMENT  reduce 76
+
+	constraint_expr  goto 164
+
+
+state 139
+	assignement : LABEL SET . assign_expr  (19)
+	assignement : LABEL SET . error  (20)
+
+	error  shift 165
+	INFINITY  shift 166
+	OP_PAR  shift 167
+	INT  shift 168
+	FLOAT  shift 169
+	ID  shift 16
+	LABEL  shift 170
+	.  error
+
+	assign_expr  goto 171
+	assign_val  goto 172
+	id  goto 173
+
+
+state 140
 	modif_expr : concentration_ineq DO assignement newline .  (16)
 
 	.  reduce 16
 
 
-state 137
+state 141
 	modif_expr : time_ineq DO assignement newline .  (17)
 
 	.  reduce 17
 
 
-state 138
-	gen_expr : id EQUAL id OP_CONC . instruction_list CL_CONC newline  (97)
-	instruction_list : .  (98)
-
-	PLUS  shift 169
-	MINUS  shift 170
-	OP_ACC  shift 171
-	ID  shift 16
-	CL_CONC  reduce 98
-
-	id  goto 172
-	instruction_list  goto 173
-	instruction_ne_list  goto 174
-	instruction  goto 175
-	subs  goto 176
-
-
-state 139
-	gen_expr : id EQUAL id newline .  (96)
-
-	.  reduce 96
-
-
-state 140
-	ne_idlistcomma : id COMMA . ne_idlistcomma  (124)
-
-	ID  shift 16
-	.  error
-
-	id  goto 118
-	ne_idlistcomma  goto 177
-
-
-state 141
-	macro_def : id OP_PAR idlistcomma CL_PAR . newline  (119)
-
-	NEWLINE  shift 28
-	EOF  shift 29
-	COMMENT  shift 32
-	.  error
-
-	newline  goto 178
-
-
 state 142
-	ne_idlist : id ne_idlist .  (128)
+	gen_expr : id EQUAL id OP_CONC . instruction_list CL_CONC newline  (98)
+	instruction_list : .  (99)
 
-	.  reduce 128
+	PLUS  shift 174
+	MINUS  shift 175
+	OP_ACC  shift 176
+	ID  shift 16
+	CL_CONC  reduce 99
+
+	id  goto 177
+	instruction_list  goto 178
+	instruction_ne_list  goto 179
+	instruction  goto 180
+	subs  goto 181
 
 
 state 143
-	macro_call : id OP_PAR idlistlist CL_PAR . newline  (120)
+	gen_expr : id EQUAL id newline .  (97)
+
+	.  reduce 97
+
+
+state 144
+	ne_idlistcomma : id COMMA . ne_idlistcomma  (129)
+
+	ID  shift 16
+	.  error
+
+	id  goto 122
+	ne_idlistcomma  goto 182
+
+
+state 145
+	macro_def : id OP_PAR idlistcomma CL_PAR . newline  (120)
 
 	NEWLINE  shift 28
 	EOF  shift 29
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 179
+	newline  goto 183
 
 
-state 144
-	ne_idlistlist : idlist COMMA . idlistlist  (132)
-	idlist : .  (125)
-	idlistlist : .  (129)
+state 146
+	ne_idvarlist : idvar ne_idvarlist .  (137)
 
+	.  reduce 137
+
+
+state 147
+	macro_call : idvar OP_PAR idvarlistlist CL_PAR . newline  (125)
+
+	NEWLINE  shift 28
+	EOF  shift 29
+	COMMENT  shift 32
+	.  error
+
+	newline  goto 184
+
+
+state 148
+	ne_idvarlistlist : idvarlist COMMA . idvarlistlist  (145)
+	idvarlist : .  (134)
+	idvarlistlist : .  (140)
+
+	INFINITY  shift 60
+	INT  shift 61
+	FLOAT  shift 62
 	ID  shift 16
-	COMMA  reduce 125
-	CL_PAR  reduce 129
+	COMMA  reduce 134
+	CL_PAR  reduce 140
 
-	id  goto 121
-	idlistlist  goto 180
-	idlist  goto 123
-	ne_idlist  goto 124
-	ne_idlistlist  goto 125
+	id  goto 64
+	idvar  goto 125
+	idvarlistlist  goto 185
+	idvarlist  goto 127
+	ne_idvarlist  goto 128
+	ne_idvarlistlist  goto 129
 
 
-state 145
+state 149
 	state_expr : KAPPA_MRK id .  (59)
 
 	.  reduce 59
 
 
-state 146
+state 150
 	link_expr : KAPPA_LNK . INT  (62)
 	link_expr : KAPPA_LNK . KAPPA_SEMI  (63)
 	link_expr : KAPPA_LNK . error  (64)
 
-	error  shift 181
-	KAPPA_SEMI  shift 182
-	INT  shift 183
+	error  shift 186
+	KAPPA_SEMI  shift 187
+	INT  shift 188
 	.  error
 
 
-state 147
+state 151
 	link_expr : KAPPA_WLD .  (65)
 
 	.  reduce 65
 
 
-state 148
+state 152
 	interface_expr : id state_expr link_expr .  (56)
 	interface_expr : id state_expr link_expr . COMMA interface_expr  (57)
 
-	COMMA  shift 184
+	COMMA  shift 189
 	error  reduce 56
 	CL_PAR  reduce 56
 
 
-state 149
+state 153
 	kin_expr2 : AT error .  (86)
 
 	.  reduce 86
 
 
-state 150
+state 154
 	var_kin : INFINITY .  (89)
 
 	.  reduce 89
 
 
-state 151
+state 155
 	var_kin : KAPPA_WLD .  (87)
 
 	.  reduce 87
 
 
-state 152
-	var_kin : INT .  (90)
+state 156
+	var_kin : INT .  (91)
 
-	.  reduce 90
+	.  reduce 91
 
 
-state 153
+state 157
 	var_kin : FLOAT .  (88)
 
 	.  reduce 88
 
 
-state 154
+state 158
+	var_kin : id .  (90)
+
+	.  reduce 90
+
+
+state 159
 	kin_expr2 : AT var_kin . intra_rate COMMA var_kin  (85)
-	intra_rate : .  (91)
+	intra_rate : .  (92)
 
-	OP_PAR  shift 185
-	COMMA  reduce 91
+	OP_PAR  shift 190
+	COMMA  reduce 92
 
-	intra_rate  goto 186
+	intra_rate  goto 191
 
 
-state 155
+state 160
 	constraint_expr : OP_CONC . cstr_list CL_CONC  (77)
 	cstr_list : .  (78)
 
 	ID  shift 16
 	CL_CONC  reduce 78
 
-	id  goto 187
-	cstr_list  goto 188
+	id  goto 192
+	cstr_list  goto 193
 
 
-state 156
+state 161
 	rule_expr : sol_expr KAPPA_LRAR sol_expr kin_expr2 constraint_expr .  (75)
 
 	.  reduce 75
 
 
-state 157
+state 162
 	kin_expr1 : AT error .  (83)
 
 	.  reduce 83
 
 
-state 158
+state 163
 	kin_expr1 : AT var_kin . intra_rate  (82)
-	intra_rate : .  (91)
+	intra_rate : .  (92)
 
-	OP_PAR  shift 185
-	NEWLINE  reduce 91
-	EOF  reduce 91
-	OP_CONC  reduce 91
-	COMMENT  reduce 91
+	OP_PAR  shift 190
+	NEWLINE  reduce 92
+	EOF  reduce 92
+	OP_CONC  reduce 92
+	COMMENT  reduce 92
 
-	intra_rate  goto 189
+	intra_rate  goto 194
 
 
-state 159
+state 164
 	rule_expr : sol_expr KAPPA_RAR sol_expr kin_expr1 constraint_expr .  (74)
 
 	.  reduce 74
 
 
-state 160
+state 165
 	assignement : LABEL SET error .  (20)
 
 	.  reduce 20
 
 
-state 161
+state 166
 	assign_val : INFINITY .  (28)
 
 	.  reduce 28
 
 
-state 162
+state 167
 	assign_expr : OP_PAR . assign_expr CL_PAR  (21)
 
-	INFINITY  shift 161
-	OP_PAR  shift 162
-	INT  shift 163
-	FLOAT  shift 164
+	INFINITY  shift 166
+	OP_PAR  shift 167
+	INT  shift 168
+	FLOAT  shift 169
 	ID  shift 16
-	LABEL  shift 165
+	LABEL  shift 170
 	.  error
 
-	assign_expr  goto 190
-	assign_val  goto 167
-	id  goto 168
+	assign_expr  goto 195
+	assign_val  goto 172
+	id  goto 173
 
 
-state 163
+state 168
 	assign_val : INT .  (27)
 
 	.  reduce 27
 
 
-state 164
+state 169
 	assign_val : FLOAT .  (26)
 
 	.  reduce 26
 
 
-state 165
+state 170
 	assign_val : LABEL .  (29)
 
 	.  reduce 29
 
 
-state 166
+state 171
 	assignement : LABEL SET assign_expr .  (19)
 
 	.  reduce 19
 
 
-state 167
+state 172
 	assign_expr : assign_val . MULT assign_expr  (22)
 	assign_expr : assign_val . PLUS assign_expr  (23)
 	assign_expr : assign_val . DIVIDE assign_expr  (24)
 	assign_expr : assign_val .  (25)
 
-	MULT  shift 191
-	DIVIDE  shift 192
-	PLUS  shift 193
+	MULT  shift 196
+	DIVIDE  shift 197
+	PLUS  shift 198
 	NEWLINE  reduce 25
 	EOF  reduce 25
 	CL_PAR  reduce 25
 	COMMENT  reduce 25
 
 
-state 168
+state 173
 	assign_val : id .  (30)
 
 	.  reduce 30
 
 
-state 169
-	instruction : PLUS . id  (102)
-
-	ID  shift 16
-	.  error
-
-	id  goto 194
-
-
-state 170
-	instruction : MINUS . id  (103)
-
-	ID  shift 16
-	.  error
-
-	id  goto 195
-
-
-state 171
-	subs : OP_ACC . id_list CL_ACC subs_symbol id  (107)
-	id_list : .  (108)
-
-	ID  shift 16
-	CL_ACC  reduce 108
-
-	id  goto 196
-	id_list  goto 197
-	id_non_empty_list  goto 198
-
-
-state 172
-	instruction : id . SET id  (105)
-	subs : id . subs_symbol OP_ACC id_list CL_ACC  (106)
-
-	DIVIDE  shift 199
-	ANTISLASH  shift 200
-	SET  shift 201
-	.  error
-
-	subs_symbol  goto 202
-
-
-state 173
-	gen_expr : id EQUAL id OP_CONC instruction_list . CL_CONC newline  (97)
-
-	CL_CONC  shift 203
-	.  error
-
-
 state 174
-	instruction_list : instruction_ne_list .  (99)
+	instruction : PLUS . id  (103)
 
-	.  reduce 99
+	ID  shift 16
+	.  error
+
+	id  goto 199
 
 
 state 175
-	instruction_ne_list : instruction .  (100)
-	instruction_ne_list : instruction . instruction_ne_list  (101)
+	instruction : MINUS . id  (104)
 
-	PLUS  shift 169
-	MINUS  shift 170
-	OP_ACC  shift 171
 	ID  shift 16
-	CL_CONC  reduce 100
+	.  error
 
-	id  goto 172
-	instruction_ne_list  goto 204
-	instruction  goto 175
-	subs  goto 176
+	id  goto 200
 
 
 state 176
-	instruction : subs .  (104)
+	subs : OP_ACC . id_list CL_ACC subs_symbol id  (108)
+	id_list : .  (109)
 
-	.  reduce 104
+	ID  shift 16
+	CL_ACC  reduce 109
+
+	id  goto 201
+	id_list  goto 202
+	id_non_empty_list  goto 203
 
 
 state 177
-	ne_idlistcomma : id COMMA ne_idlistcomma .  (124)
+	instruction : id . SET id  (106)
+	subs : id . subs_symbol OP_ACC id_list CL_ACC  (107)
 
-	.  reduce 124
+	DIVIDE  shift 204
+	ANTISLASH  shift 205
+	SET  shift 206
+	.  error
+
+	subs_symbol  goto 207
 
 
 state 178
-	macro_def : id OP_PAR idlistcomma CL_PAR newline .  (119)
+	gen_expr : id EQUAL id OP_CONC instruction_list . CL_CONC newline  (98)
 
-	.  reduce 119
+	CL_CONC  shift 208
+	.  error
 
 
 state 179
-	macro_call : id OP_PAR idlistlist CL_PAR newline .  (120)
+	instruction_list : instruction_ne_list .  (100)
+
+	.  reduce 100
+
+
+state 180
+	instruction_ne_list : instruction .  (101)
+	instruction_ne_list : instruction . instruction_ne_list  (102)
+
+	PLUS  shift 174
+	MINUS  shift 175
+	OP_ACC  shift 176
+	ID  shift 16
+	CL_CONC  reduce 101
+
+	id  goto 177
+	instruction_ne_list  goto 209
+	instruction  goto 180
+	subs  goto 181
+
+
+state 181
+	instruction : subs .  (105)
+
+	.  reduce 105
+
+
+state 182
+	ne_idlistcomma : id COMMA ne_idlistcomma .  (129)
+
+	.  reduce 129
+
+
+state 183
+	macro_def : id OP_PAR idlistcomma CL_PAR newline .  (120)
 
 	.  reduce 120
 
 
-state 180
-	ne_idlistlist : idlist COMMA idlistlist .  (132)
+state 184
+	macro_call : idvar OP_PAR idvarlistlist CL_PAR newline .  (125)
 
-	.  reduce 132
+	.  reduce 125
 
 
-state 181
+state 185
+	ne_idvarlistlist : idvarlist COMMA idvarlistlist .  (145)
+
+	.  reduce 145
+
+
+state 186
 	link_expr : KAPPA_LNK error .  (64)
 
 	.  reduce 64
 
 
-state 182
+state 187
 	link_expr : KAPPA_LNK KAPPA_SEMI .  (63)
 
 	.  reduce 63
 
 
-state 183
+state 188
 	link_expr : KAPPA_LNK INT .  (62)
 
 	.  reduce 62
 
 
-state 184
+state 189
 	interface_expr : id state_expr link_expr COMMA . interface_expr  (57)
 	interface_expr : .  (55)
 
@@ -1903,362 +1974,375 @@ state 184
 	error  reduce 55
 	CL_PAR  reduce 55
 
-	id  goto 97
-	interface_expr  goto 205
+	id  goto 101
+	interface_expr  goto 210
 
 
-state 185
-	intra_rate : OP_PAR . FLOAT CL_PAR  (92)
-	intra_rate : OP_PAR . INT CL_PAR  (93)
-	intra_rate : OP_PAR . INFINITY CL_PAR  (94)
+state 190
+	intra_rate : OP_PAR . FLOAT CL_PAR  (93)
+	intra_rate : OP_PAR . INT CL_PAR  (94)
+	intra_rate : OP_PAR . INFINITY CL_PAR  (95)
 
-	INFINITY  shift 206
-	INT  shift 207
-	FLOAT  shift 208
+	INFINITY  shift 211
+	INT  shift 212
+	FLOAT  shift 213
 	.  error
 
 
-state 186
+state 191
 	kin_expr2 : AT var_kin intra_rate . COMMA var_kin  (85)
 
-	COMMA  shift 209
+	COMMA  shift 214
 	.  error
 
 
-state 187
+state 192
 	cstr_list : id .  (79)
 	cstr_list : id . SEMICOLON cstr_list  (80)
 
-	SEMICOLON  shift 210
+	SEMICOLON  shift 215
 	CL_CONC  reduce 79
 
 
-state 188
+state 193
 	constraint_expr : OP_CONC cstr_list . CL_CONC  (77)
 
-	CL_CONC  shift 211
+	CL_CONC  shift 216
 	.  error
 
 
-state 189
+state 194
 	kin_expr1 : AT var_kin intra_rate .  (82)
 
 	.  reduce 82
 
 
-state 190
+state 195
 	assign_expr : OP_PAR assign_expr . CL_PAR  (21)
 
-	CL_PAR  shift 212
+	CL_PAR  shift 217
 	.  error
 
 
-state 191
+state 196
 	assign_expr : assign_val MULT . assign_expr  (22)
 
-	INFINITY  shift 161
-	OP_PAR  shift 162
-	INT  shift 163
-	FLOAT  shift 164
+	INFINITY  shift 166
+	OP_PAR  shift 167
+	INT  shift 168
+	FLOAT  shift 169
 	ID  shift 16
-	LABEL  shift 165
+	LABEL  shift 170
 	.  error
 
-	assign_expr  goto 213
-	assign_val  goto 167
-	id  goto 168
+	assign_expr  goto 218
+	assign_val  goto 172
+	id  goto 173
 
 
-state 192
+state 197
 	assign_expr : assign_val DIVIDE . assign_expr  (24)
 
-	INFINITY  shift 161
-	OP_PAR  shift 162
-	INT  shift 163
-	FLOAT  shift 164
+	INFINITY  shift 166
+	OP_PAR  shift 167
+	INT  shift 168
+	FLOAT  shift 169
 	ID  shift 16
-	LABEL  shift 165
+	LABEL  shift 170
 	.  error
 
-	assign_expr  goto 214
-	assign_val  goto 167
-	id  goto 168
+	assign_expr  goto 219
+	assign_val  goto 172
+	id  goto 173
 
 
-state 193
+state 198
 	assign_expr : assign_val PLUS . assign_expr  (23)
 
-	INFINITY  shift 161
-	OP_PAR  shift 162
-	INT  shift 163
-	FLOAT  shift 164
+	INFINITY  shift 166
+	OP_PAR  shift 167
+	INT  shift 168
+	FLOAT  shift 169
 	ID  shift 16
-	LABEL  shift 165
+	LABEL  shift 170
 	.  error
 
-	assign_expr  goto 215
-	assign_val  goto 167
-	id  goto 168
+	assign_expr  goto 220
+	assign_val  goto 172
+	id  goto 173
 
 
-state 194
-	instruction : PLUS id .  (102)
-
-	.  reduce 102
-
-
-state 195
-	instruction : MINUS id .  (103)
+state 199
+	instruction : PLUS id .  (103)
 
 	.  reduce 103
 
 
-state 196
-	id_non_empty_list : id .  (110)
-	id_non_empty_list : id . id_non_empty_list  (111)
-
-	ID  shift 16
-	CL_ACC  reduce 110
-
-	id  goto 196
-	id_non_empty_list  goto 216
-
-
-state 197
-	subs : OP_ACC id_list . CL_ACC subs_symbol id  (107)
-
-	CL_ACC  shift 217
-	.  error
-
-
-state 198
-	id_list : id_non_empty_list .  (109)
-
-	.  reduce 109
-
-
-state 199
-	subs_symbol : DIVIDE .  (133)
-
-	.  reduce 133
-
-
 state 200
-	subs_symbol : ANTISLASH .  (134)
+	instruction : MINUS id .  (104)
 
-	.  reduce 134
+	.  reduce 104
 
 
 state 201
-	instruction : id SET . id  (105)
+	id_non_empty_list : id .  (111)
+	id_non_empty_list : id . id_non_empty_list  (112)
 
 	ID  shift 16
-	.  error
+	CL_ACC  reduce 111
 
-	id  goto 218
+	id  goto 201
+	id_non_empty_list  goto 221
 
 
 state 202
-	subs : id subs_symbol . OP_ACC id_list CL_ACC  (106)
+	subs : OP_ACC id_list . CL_ACC subs_symbol id  (108)
 
-	OP_ACC  shift 219
+	CL_ACC  shift 222
 	.  error
 
 
 state 203
-	gen_expr : id EQUAL id OP_CONC instruction_list CL_CONC . newline  (97)
+	id_list : id_non_empty_list .  (110)
+
+	.  reduce 110
+
+
+state 204
+	subs_symbol : DIVIDE .  (146)
+
+	.  reduce 146
+
+
+state 205
+	subs_symbol : ANTISLASH .  (147)
+
+	.  reduce 147
+
+
+state 206
+	instruction : id SET . id  (106)
+
+	ID  shift 16
+	.  error
+
+	id  goto 223
+
+
+state 207
+	subs : id subs_symbol . OP_ACC id_list CL_ACC  (107)
+
+	OP_ACC  shift 224
+	.  error
+
+
+state 208
+	gen_expr : id EQUAL id OP_CONC instruction_list CL_CONC . newline  (98)
 
 	NEWLINE  shift 28
 	EOF  shift 29
 	COMMENT  shift 32
 	.  error
 
-	newline  goto 220
+	newline  goto 225
 
 
-state 204
-	instruction_ne_list : instruction instruction_ne_list .  (101)
+state 209
+	instruction_ne_list : instruction instruction_ne_list .  (102)
 
-	.  reduce 101
+	.  reduce 102
 
 
-state 205
+state 210
 	interface_expr : id state_expr link_expr COMMA interface_expr .  (57)
 
 	.  reduce 57
 
 
-state 206
-	intra_rate : OP_PAR INFINITY . CL_PAR  (94)
+state 211
+	intra_rate : OP_PAR INFINITY . CL_PAR  (95)
 
-	CL_PAR  shift 221
+	CL_PAR  shift 226
 	.  error
 
 
-state 207
-	intra_rate : OP_PAR INT . CL_PAR  (93)
+state 212
+	intra_rate : OP_PAR INT . CL_PAR  (94)
 
-	CL_PAR  shift 222
+	CL_PAR  shift 227
 	.  error
 
 
-state 208
-	intra_rate : OP_PAR FLOAT . CL_PAR  (92)
+state 213
+	intra_rate : OP_PAR FLOAT . CL_PAR  (93)
 
-	CL_PAR  shift 223
+	CL_PAR  shift 228
 	.  error
 
 
-state 209
+state 214
 	kin_expr2 : AT var_kin intra_rate COMMA . var_kin  (85)
 
-	INFINITY  shift 150
-	KAPPA_WLD  shift 151
-	INT  shift 152
-	FLOAT  shift 153
+	INFINITY  shift 154
+	KAPPA_WLD  shift 155
+	INT  shift 156
+	FLOAT  shift 157
+	ID  shift 16
 	.  error
 
-	var_kin  goto 224
+	id  goto 158
+	var_kin  goto 229
 
 
-state 210
+state 215
 	cstr_list : id SEMICOLON . cstr_list  (80)
 	cstr_list : .  (78)
 
 	ID  shift 16
 	CL_CONC  reduce 78
 
-	id  goto 187
-	cstr_list  goto 225
+	id  goto 192
+	cstr_list  goto 230
 
 
-state 211
+state 216
 	constraint_expr : OP_CONC cstr_list CL_CONC .  (77)
 
 	.  reduce 77
 
 
-state 212
+state 217
 	assign_expr : OP_PAR assign_expr CL_PAR .  (21)
 
 	.  reduce 21
 
 
-state 213
+state 218
 	assign_expr : assign_val MULT assign_expr .  (22)
 
 	.  reduce 22
 
 
-state 214
+state 219
 	assign_expr : assign_val DIVIDE assign_expr .  (24)
 
 	.  reduce 24
 
 
-state 215
+state 220
 	assign_expr : assign_val PLUS assign_expr .  (23)
 
 	.  reduce 23
 
 
-state 216
-	id_non_empty_list : id id_non_empty_list .  (111)
+state 221
+	id_non_empty_list : id id_non_empty_list .  (112)
 
-	.  reduce 111
+	.  reduce 112
 
 
-state 217
-	subs : OP_ACC id_list CL_ACC . subs_symbol id  (107)
+state 222
+	subs : OP_ACC id_list CL_ACC . subs_symbol id  (108)
 
-	DIVIDE  shift 199
-	ANTISLASH  shift 200
+	DIVIDE  shift 204
+	ANTISLASH  shift 205
 	.  error
 
-	subs_symbol  goto 226
+	subs_symbol  goto 231
 
 
-state 218
-	instruction : id SET id .  (105)
+state 223
+	instruction : id SET id .  (106)
 
-	.  reduce 105
+	.  reduce 106
 
 
-state 219
-	subs : id subs_symbol OP_ACC . id_list CL_ACC  (106)
-	id_list : .  (108)
+state 224
+	subs : id subs_symbol OP_ACC . id_list CL_ACC  (107)
+	id_list : .  (109)
 
 	ID  shift 16
-	CL_ACC  reduce 108
+	CL_ACC  reduce 109
 
-	id  goto 196
-	id_list  goto 227
-	id_non_empty_list  goto 198
-
-
-state 220
-	gen_expr : id EQUAL id OP_CONC instruction_list CL_CONC newline .  (97)
-
-	.  reduce 97
+	id  goto 201
+	id_list  goto 232
+	id_non_empty_list  goto 203
 
 
-state 221
-	intra_rate : OP_PAR INFINITY CL_PAR .  (94)
+state 225
+	gen_expr : id EQUAL id OP_CONC instruction_list CL_CONC newline .  (98)
+
+	.  reduce 98
+
+
+state 226
+	intra_rate : OP_PAR INFINITY CL_PAR .  (95)
+
+	.  reduce 95
+
+
+state 227
+	intra_rate : OP_PAR INT CL_PAR .  (94)
 
 	.  reduce 94
 
 
-state 222
-	intra_rate : OP_PAR INT CL_PAR .  (93)
+state 228
+	intra_rate : OP_PAR FLOAT CL_PAR .  (93)
 
 	.  reduce 93
 
 
-state 223
-	intra_rate : OP_PAR FLOAT CL_PAR .  (92)
-
-	.  reduce 92
-
-
-state 224
+state 229
 	kin_expr2 : AT var_kin intra_rate COMMA var_kin .  (85)
 
 	.  reduce 85
 
 
-state 225
+state 230
 	cstr_list : id SEMICOLON cstr_list .  (80)
 
 	.  reduce 80
 
 
-state 226
-	subs : OP_ACC id_list CL_ACC subs_symbol . id  (107)
+state 231
+	subs : OP_ACC id_list CL_ACC subs_symbol . id  (108)
 
 	ID  shift 16
 	.  error
 
-	id  goto 228
+	id  goto 233
 
 
-state 227
-	subs : id subs_symbol OP_ACC id_list . CL_ACC  (106)
+state 232
+	subs : id subs_symbol OP_ACC id_list . CL_ACC  (107)
 
-	CL_ACC  shift 229
+	CL_ACC  shift 234
 	.  error
 
 
-state 228
-	subs : OP_ACC id_list CL_ACC subs_symbol id .  (107)
+state 233
+	subs : OP_ACC id_list CL_ACC subs_symbol id .  (108)
+
+	.  reduce 108
+
+
+state 234
+	subs : id subs_symbol OP_ACC id_list CL_ACC .  (107)
 
 	.  reduce 107
 
 
-state 229
-	subs : id subs_symbol OP_ACC id_list CL_ACC .  (106)
+Rules never reduced:
+	idlist :  (130)
+	idlist : ne_idlist  (131)
+	ne_idlist : id  (132)
+	ne_idlist : id ne_idlist  (133)
+	idlistlist :  (138)
+	idlistlist : ne_idlistlist  (139)
+	ne_idlistlist : ne_idlist  (142)
+	ne_idlistlist : idlist COMMA idlistlist  (143)
 
-	.  reduce 106
 
-
-50 terminals, 49 nonterminals
-136 grammar rules, 230 states
+50 terminals, 54 nonterminals
+149 grammar rules, 235 states

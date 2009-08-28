@@ -241,6 +241,7 @@ main:
 | KAPPA_WLD {fun f -> "?"}
 | FLOAT {fun f -> string_of_float $1}
 | INFINITY {fun f -> "$INF"}
+| id {fun f -> $1 f}
 | INT {fun f -> string_of_int $1}
   ;
 
@@ -315,9 +316,14 @@ macro_def:
     id OP_PAR idlistcomma CL_PAR newline {(fun f -> ($1 f)),
 					   (fun f -> fst ($3 f)),
 					   fun f -> ($1 f)^"("^(snd ($3 f))^")"}
+idvar:
+| FLOAT {fun f -> string_of_float $1}
+| INFINITY {fun f -> "$INF"}
+| id {fun f -> $1 f}
+| INT {fun f -> string_of_int $1}
 
 macro_call: 
-    id OP_PAR idlistlist CL_PAR newline  {(fun f -> ($1 f)),
+    idvar OP_PAR idvarlistlist CL_PAR newline  {(fun f -> ($1 f)),
 					   (fun f -> fst ($3 f)),
 					   (fun f -> ($1 f)^"("^(snd ($3 f))^")")}
 
@@ -328,7 +334,7 @@ idlistcomma:
 ne_idlistcomma:
     id {fun f -> [$1 f],$1 f}
 | id COMMA ne_idlistcomma {fun f -> ($1 f)::(fst ($3 f)),($1 f)^" , "^(snd ($3 f))}
-
+ 
 
 idlist: 
     /*empty*/ {fun f -> [],""}
@@ -339,15 +345,31 @@ ne_idlist:
 | id ne_idlist {fun f -> ($1 f)::(fst ($2 f)),($1 f)^(snd ($2 f))}
 
 
+idvarlist: 
+    /*empty*/ {fun f -> [],""}
+|   ne_idvarlist {$1}
+
+ne_idvarlist:
+    idvar {fun f -> [$1 f],$1 f}
+| idvar ne_idvarlist {fun f -> ($1 f)::(fst ($2 f)),($1 f)^(snd ($2 f))}
+
 
 
 idlistlist:
     /*empty*/ {fun f -> [],""}
 | ne_idlistlist {$1}
 
+idvarlistlist:
+    /*empty*/ {fun f -> [],""}
+| ne_idvarlistlist {$1}
+
 ne_idlistlist:
     ne_idlist {fun f -> [fst ($1 f)],snd ($1 f) }
 | idlist COMMA idlistlist {fun f -> (fst ($1 f))::(fst ($3 f)),(snd ($1 f))^" , "^(snd ($3 f))}
+
+ne_idvarlistlist:
+    ne_idvarlist {fun f -> [fst ($1 f)],snd ($1 f) }
+| idvarlist COMMA idvarlistlist {fun f -> (fst ($1 f))::(fst ($3 f)),(snd ($1 f))^" , "^(snd ($3 f))}
 
 subs_symbol:
   DIVIDE {"/"}
