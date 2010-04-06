@@ -223,17 +223,17 @@ let dump_messages output log =
 
 let string_of_lineage l =
   match l with 
-      [] -> ""
+      [] -> "",false 
     | _ -> 
-	fst 
+        let a,_,b = 
 	  begin 
 	    List.fold_left 
-	      (fun (s,bool) l -> 
+	      (fun (s,bool,bool2) l -> 
 		 match snd l with 
-		     None -> s^(if bool then "," else "")^"?",true
-	     | Some i -> s^(if bool then "," else "")^(string_of_int i),true
+		     None -> s^(if bool then "," else "")^"?",true,false
+	     | Some i -> s^(if bool then "," else "")^(string_of_int i),true,bool2
 	      )
-	      ("lines:",false)
+	      ("lines:",false,true)
 	      l 
 	  end
-	  
+	in a,b  

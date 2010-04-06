@@ -105,7 +105,13 @@ let rename_rule rule interface_database flagmap  log =
 		(fun a (kappa_prefix,tag_prefix) -> 
 		 List.fold_left 
 		   (fun a (tag_suffix,lineage,kappa_suffix)  -> 
-		      (kappa_suffix::kappa_prefix,["%",string_of_lineage lineage]::(tag_suffix::tag_prefix))::a)
+		      let lineage,bool = string_of_lineage lineage in 
+                        if bool 
+                        then 
+                          (kappa_suffix::kappa_prefix,["%",lineage]::(tag_suffix::tag_prefix))::a
+                        else
+                          (kappa_suffix::kappa_prefix,tag_prefix)::a
+                   )
 		   a 
 		   sol)
 		[] 
@@ -190,7 +196,12 @@ let transform_model line interface_database (tail,flagset) log =
       let (a,b),log = rename_rule rule interface_database flagset log in 
       (List.fold_left 
 	(fun sol l -> PREPROCESSED_RULE (x,l,i)::sol)
-	(COMMENTED_RULE_L(rule,i)::tail)
+	(if StringMap.fold 
+           (fun x y bool -> bool & y=[x])
+           b true 
+         then 
+           tail 
+         else COMMENTED_RULE_L(rule,i)::tail)
 	a
 	,b),log
   | RULE_L _  -> failwith "INTERNAL ERROR"

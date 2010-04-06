@@ -36,7 +36,7 @@ let compute_interface starting_interface directives lineage log =
 	    if 
 	      SiteSet.mem site sources 
 	    then 
-	      let mess = "Site "^site^" occurs several time as a modified site (Agent lineage: "^(string_of_lineage lineage)^")" in
+	      let mess = "Site "^site^" occurs several time as a modified site (Agent lineage: "^(fst (string_of_lineage lineage))^")" in
 		match !Config_metakappa.tolerancy with 
 		    "0" -> failwith mess 
 		  | "1" -> map,newsites,sources,targets,true,add_message mess (!Config_metakappa.log_warning) log
@@ -49,7 +49,7 @@ let compute_interface starting_interface directives lineage log =
 	      with 
 		Not_found -> true 
 	    then 
-	      let mess = "Site "^site^" is not defined (Agent lineage: "^(string_of_lineage lineage)^")" in
+	      let mess = "Site "^site^" is not defined (Agent lineage: "^(fst (string_of_lineage lineage))^")" in
 		match 
 		  !Config_metakappa.tolerancy with 
 		      "0" -> failwith mess
@@ -93,7 +93,7 @@ let compute_interface_portion  starting_interface directives lineage log =
 	    if 
 	      SiteSet.mem site sources 
 	    then 
-	      failwith ("Site "^site^" occurs several time as a modified site (Agent lineage: "^(string_of_lineage lineage)^")")
+	      failwith ("Site "^site^" occurs several time as a modified site (Agent lineage: "^(fst (string_of_lineage lineage))^")")
 	    else if 
 	      try 
 		let _ = 
