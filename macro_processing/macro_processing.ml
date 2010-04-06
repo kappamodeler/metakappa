@@ -136,7 +136,6 @@ let rec macro_expanse calling_stack def f tag l sol log =
 	  | PP_CMAC_L (cont,i) -> 
 	      let rec call (x,arg,string) sol calling_stack log = 
 		try 
-		  let _ = print_string x in 
 		  let (int,body),i2= 
 		    StringMap.find x def 
 		  in 

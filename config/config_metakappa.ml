@@ -25,7 +25,7 @@ let time_stamp =
     (ad2 tm.Unix.tm_sec)
 
 let version = "1.2.."^(string_of_int Svn_number.svn_number) 
-let date = "2009.07.20"
+let date = "2010.05.06"
 let input_marshalling = ref "" 
 let input_file = ref [""] 
 let input_focus_on = ref ""
