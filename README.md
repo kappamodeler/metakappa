@@ -20,12 +20,12 @@ On Windows
 ---------------------------------------
 You will also need Cygwin for make and gcc, FlexDll for linking, and ActiveTcl for the graphical interface.
 
-Cygwin ([http://www.cygwin.com/])
+[http://www.cygwin.com/](Cygwin)
 * make sure you install gcc v. 3. You may need to rename c:/cygwin/bin/gcc-3.exe to c:/cygwin/bin/gcc.exe
 
-FlexDll ([http://alain.frisch.fr/flexdll.html])
+[http://alain.frisch.fr/flexdll.html](FlexDll)
 
-ActiveTcl ([http://www.activestate.com/activetcl/downloads])
+[http://www.activestate.com/activetcl/downloads](ActiveTcl)
 * make sure to install version 8.4
  
 
