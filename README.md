@@ -20,13 +20,13 @@ On Windows
 ---------------------------------------
 You will also need Cygwin for make and gcc, FlexDll for linking, and ActiveTcl for the graphical interface.
 
-Cygwin (http://www.cygwin.com/)
- * make sure you install gcc v. 3. You may need to rename c:/cygwin/bin/gcc-3.exe to c:/cygwin/bin/gcc.exe
+Cygwin ([http://www.cygwin.com/])
+* make sure you install gcc v. 3. You may need to rename c:/cygwin/bin/gcc-3.exe to c:/cygwin/bin/gcc.exe
 
-FlexDll (http://alain.frisch.fr/flexdll.html)
+FlexDll ([http://alain.frisch.fr/flexdll.html])
 
-ActiveTcl (http://www.activestate.com/activetcl/downloads)
- * make sure to install version 8.4
+ActiveTcl ([http://www.activestate.com/activetcl/downloads])
+* make sure to install version 8.4
  
 
 How to compile MetaKappa
