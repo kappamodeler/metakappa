@@ -33,8 +33,8 @@ let time_stamp =
     (ad2 tm.Unix.tm_min) 
     (ad2 tm.Unix.tm_sec)
 
-let version = "1.3.."^(string_of_int Svn_number.svn_number) 
-let date = "2011.11.17"
+let version = (string_of_int Git_commit_info.git_commit_version)^"."^(string_of_int Git_commit_info.git_commit_release)^".."^(string_of_int Git_commit_info.git_commit_tag)
+let date = Git_commit_info.git_commit_date
 let input_marshalling = ref "" 
 let input_file = ref [""] 
 let input_focus_on = ref ""

@@ -71,7 +71,7 @@ MLFULL? =
 TKFILE=
 
 FIRST_OBJS = ./$(METAKAPPAREP)tools/map2.cmo \
-	./$(MEtAKAPPAREP)automatically_generated/svn_number.cmo \
+	./$(MEtAKAPPAREP)automatically_generated/git_commit_info.cmo \
 	./$(METAKAPPAREP)data_structures/data_structures_metakappa.cmo \
 	./$(METAKAPPAREP)lib/superarg.cmo \
 	./$(METAKAPPAREP)lib/$(TKREP)/superargTk.cmo \
