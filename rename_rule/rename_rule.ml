@@ -1,13 +1,20 @@
-(* 2009/06/20*)
-(* Meta language for Kappa *)
-(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
-(* Academic uses only *)
-(* Apply substitutions to rules*)
-(* rename_rule.ml *)
+(** 
+ * rename_rule.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: June, the 6th of 2009
+ * Last Moification: June, the 6th of 2009
+ * 
+ * To apply substitution to rules 
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
 
 open Data_structures_metakappa
 open Rename_agent 
-
 
 let add_decl a l = a::l 
 
@@ -45,12 +52,14 @@ let declare_full agent interface_database i =
 	       with 
 	     concrete_names = AgentMap.add agent.agent_name (Some interface,add_decl i []) interface_database.concrete_names}
 
+let hd_of_flag rule = 
+  if rule.flag<>[] then List.hd (List.rev rule.flag) else ""
 let check_rule rule interface_database i log = 
   let f = 
     List.fold_left 
       (fun database ag -> 
 	 match declare_full ag database i
-	with None -> failwith ("Problem with rule "^rule.flag^" at line "^(string_of_int i))
+	with None -> failwith ("Problem with rule "^(hd_of_flag rule)^" at line "^(string_of_int i))
 	| Some a -> a) 
   in
   let g1 = 
@@ -88,14 +97,14 @@ let check_rule rule interface_database i log =
     rule.mod_right_hand_side,log  
     
 
-let rename_rule rule interface_database flagmap  log = 
-  let fadd x y map = 
-    let old = 
+let rename_rule rule interface_database flagmap log = 
+  let fadd x (y:string list) (map:string list list StringListMap.t) = 
+    let (old:string list list) = 
       try 
-	StringMap.find x map 
+	StringListMap.find x map 
       with 
 	Not_found -> [] in 
-    StringMap.add x (y::old) map in 
+    StringListMap.add x (y::old) map in 
   let rename l log = 
     let a,b = 
       List.fold_left 
@@ -140,17 +149,24 @@ let rename_rule rule interface_database flagmap  log =
 					    then 
 					      if b="" then flag 
 					      else 
-						flag^"."^b 
+						b::"."::flag
 					    else
-					      flag^"."^b^"/"^a))
+					      a::"/"::"b"::"."::flag))
 		     in 
 		     let flag' = add_flag (add_flag (add_flag rule.flag hs') left') right' in 
+		     let rule' = 
 		       {rule with 
 			  flag = flag' ;
 			  hand_side_common = List.rev hs ; 
 			  mod_left_hand_side = List.rev left ;
-			  mod_right_hand_side = List.rev right }::liste,
-		     fadd rule.flag flag' flags)
+			  mod_right_hand_side = List.rev right } 
+		     in
+		     let _ = Pretty_printing.print_rule stdout rule' in 
+(*
+		     fadd 
+		       (rule.flag: string list)
+		       (flag':string list)
+		       flags*) (liste,flags) )
 		  liste 
 		  mod_right_hand_side')
 	     liste 
@@ -196,7 +212,7 @@ let transform_model line interface_database (tail,flagset) log =
       let (a,b),log = rename_rule rule interface_database flagset log in 
       (List.fold_left 
 	(fun sol l -> PREPROCESSED_RULE (x,l,i)::sol)
-	(if StringMap.fold 
+	(if StringListMap.fold 
            (fun x y bool -> bool & y=[x])
            b true 
          then 
@@ -211,14 +227,14 @@ let rename_obs rule flagset list log =
     INIT_L _ | DONT_CARE_L _ | GEN_L _ | CONC_L _ | RULE_L _ | COMMENTED_RULE_L _ | PREPROCESSED_RULE _ -> rule::list,log
   | OBS_L (s,a,i) ->
       (try 
-	let l = StringMap.find s flagset in
+	let l = StringListMap.find s flagset in
 	List.fold_left 
 	  (fun sol l -> (OBS_L(l,a,i))::sol)
 	  list l 
       with Not_found -> (rule::list)),log
   | STORY_L (s,a,i) ->  
       (try 
-	let l = StringMap.find s flagset in
+	let l = StringListMap.find s flagset in
 	List.fold_left 
 	  (fun sol l -> STORY_L(l,a,i)::sol)
 	  list l 

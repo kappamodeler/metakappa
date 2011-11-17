@@ -1,10 +1,17 @@
-(* 2009/06/20*)
-(* Meta language for Kappa *)
-(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
-(* Academic uses only *)
-(* Data structures *)
-(* data_structures_metaplx.ml *)
-
+(** 
+ * data_stuctures_metakappa.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: June, the 6th of 2009
+ * Last Moification: June, the 6th of 2009
+ * 
+ * Data-structure declaration
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
 
 type line = int
 
@@ -19,7 +26,7 @@ module StringSet = Set.Make(struct type t = string let compare = compare end)
 module String2Map = Map2.Make(struct type t = string*string let compare = compare end)
 module String2Set = Set.Make(struct type t = string*string let compare = compare end)
 
-
+module StringListMap = Map2.Make (struct type t = string list let compare = compare end)
 module Agent = struct type t=agent let compare=compare end
 module AgentSet = Set.Make(Agent)
 module AgentMap = Map2.Make(Agent)
@@ -146,7 +153,7 @@ type 'a agent_metaplx =
 
  
 type 'a rule_metaplx = 
-    {flag:string;
+    {flag:string list;
      hand_side_common:('a * 'a) agent_metaplx list;
      mod_left_hand_side:'a agent_metaplx list;
      mod_right_hand_side:'a agent_metaplx list;
@@ -166,8 +173,8 @@ type parsed_rule = string * (((parsed_agent list * string) * string * (parsed_ag
 
 type parse = INIT_L of  (parsed_agent list *string*int)
   | DONT_CARE_L of (string*int) 
-  | OBS_L of (string*string*int)
-  | STORY_L of (string*string*int)
+  | OBS_L of (string list*string*int)
+  | STORY_L of (string list*string*int)
   | GEN_L of (parsed_gen*int)
   | CONC_L of (parsed_conc*int)
   | RULE_L of (parsed_rule*int) 

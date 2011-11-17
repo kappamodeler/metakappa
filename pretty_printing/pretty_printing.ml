@@ -1,9 +1,17 @@
-(* 2009/06/20*)
-(* Meta language for Kappa *)
-(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
-(* Academic uses only *)
-(* Backend: prtty printing functions*)
-(* pretty_printing.ml *)
+(** 
+ * pretty_printing.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: June, the 6th of 2009
+ * Last Moification: June, the 6th of 2009
+ * 
+ * Backend: prtty printing functions
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
 
 open Data_structures_metakappa
 
@@ -29,13 +37,16 @@ let print_agent_list log l bool =
     bool l 
 
 
-      
 
 let print_rule log rule = 
   let mapsite f = 
     List.map 
       (fun agent -> {agent with interface = List.map (fun (a,b) -> (a,f b)) agent.interface}) in 
-  let _ = if rule.flag <> "" then Printf.fprintf log "\'%s\' " rule.flag in 
+  let _ = if rule.flag <> [] then 
+    let _ = Printf.fprintf log "\'" in
+    let _ = List.iter (Printf.fprintf log "%s") (List.rev rule.flag) in
+    let _ = Printf.fprintf log "\' " in ()
+  in 
   let commonl = mapsite fst rule.hand_side_common in 
   let commonr = mapsite snd rule.hand_side_common in 
   let bool = print_agent_list log commonl false in 
@@ -61,7 +72,14 @@ let print_model output model log =
 	   | RULE_L _ -> ()
 	   | COMMENTED_RULE_L (y,_) -> Printf.fprintf output "#";print_rule output y 
 	   | PREPROCESSED_RULE (_,y,_) -> print_rule output  y
-	   |	OBS_L (x,_,_) -> Printf.fprintf output "%sobs: '%s'\n" "%" x
-	   |	STORY_L (x,_,_) -> Printf.fprintf output "%sstory:  '%s'\n" "%" x)
+	   |	OBS_L (x,_,_) -> 
+		  let _ = Printf.fprintf output "%sobs: '" "%"in 
+                  let _ = List.iter (Printf.fprintf output "%s") (List.rev x) in
+		  let _ = Printf.fprintf output "'\n" in ()
+	   |	STORY_L (x,_,_) ->
+		  let _ = Printf.fprintf output "%sstory: '" "%"in 
+                  let _ = List.iter (Printf.fprintf output "%s") (List.rev x) in
+		  let _ = Printf.fprintf output "'\n" in ()
+      )
       model
   in log 

@@ -1,9 +1,17 @@
-(* 2009/06/20*)
-(* Meta language for Kappa *)
-(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
-(* Academic uses only *)
-(* Macro processing module *)
-(* macro_processing.ml *)
+(** 
+ * macro_processing.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: June, the 6th of 2009
+ * Last Moification: June, the 6th of 2009
+ * 
+ * Macro processing module 
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
 
 open Error_handler 
 open Data_structures_metakappa 
@@ -125,8 +133,8 @@ let rec macro_expanse calling_stack def f tag l sol log =
 	  match t with 
 	    PP_INIT_L (x,i) -> INIT_L(let a,b = x f in a,b,i)::sol,log
 	  | PP_DONT_CARE_L (x,i) -> DONT_CARE_L(x f,i)::sol,log
-	  | PP_OBS_L (x,i) -> OBS_L(let a,b = x f in a,b,i)::sol,log
-	  | PP_STORY_L (x,i) -> STORY_L(let a,b = x f in a,b,i)::sol,log
+	  | PP_OBS_L (x,i) -> OBS_L(let a,b = x f in [a],b,i)::sol,log
+	  | PP_STORY_L (x,i) -> STORY_L(let a,b = x f in [a],b,i)::sol,log
 	  | PP_GEN_L (x,i) -> GEN_L(x f,i)::sol,log
 	  | PP_CONC_L (x,i) -> CONC_L(x f,i)::sol,log
 	  | PP_RULE_L (x,i) -> RULE_L(extend_flag (x f) calling_stack tag,i)::sol,log

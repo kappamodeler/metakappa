@@ -1,6 +1,18 @@
-(* 17/02/2009 *)
-(* Meta language for Kappa systems *)
-(* Jerome Feret*)
+(** 
+ * main.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: Feb, the 17th of 2009
+ * Last Moification: November, the 17th of 2012
+ * 
+ * To apply substitution to rules 
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
+
 
 open Data_structures_metakappa
 open Rename_agent 
@@ -37,7 +49,8 @@ let decl,log =
 let decl,log = Agent_tree.complete decl log
 let subs,log = Agent_tree.convert_declaration_into_solved_definition decl log
 let _ = if trace () then Agent_tree.print_macro_tree print_handler_error subs 
-let (rules,flags),log  = 
+let flags = () 
+(*let (rules,flags),log  = 
   List.fold_left 
     (fun (model,log) rule -> 
       Rename_rule.transform_model 
@@ -45,14 +58,24 @@ let (rules,flags),log  =
 	subs
 	model 
         log )
-    (([],StringMap.empty),log)
+    (([],StringListMap.empty),log)
     rules 
 let rules,log = 
   List.fold_left 
-    (fun (model,log) rule -> Rename_rule.rename_obs rule flags model log)
+    (fun (model,log) rule -> Rename_rule.rename_obs 
+       rule 
+	 flags 
+	   model 
+	   log)
     ([],log)
     rules
-let log = Pretty_printing.print_model stdout rules log
+let log = Pretty_printing.print_model stdout rules log*)
+let log = Dump_on_line.rename_and_dump 
+  stdout 
+  rules 
+  subs 
+  flags 
+  log 
 let _ = dump_computation_steps stderr log 
 let _ = dump_messages stderr log 
 

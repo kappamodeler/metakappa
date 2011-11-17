@@ -1,9 +1,17 @@
-(* 2009/06/20*)
-(* Meta language for Kappa *)
-(* Jerome Feret LIENS (INRIA/ENS/CNRS) & Russ Harmer PPS (CNRS)*)
-(* Academic uses only *)
-(* This module provides common  primitives to catch exceptions and store them (with contextal information) in a stack  *)
-(* error_handler_common.ml *)
+(** 
+ * error_handler_common.ml 
+ * Meta language for Kappa 
+ * Jérôme Feret, projet Abstraction, INRIA Paris-Rocquencourt
+ * Russ Harmer PPS (CNRS)
+ * 
+ * Creation: June, the 6th of 2009
+ * Last Moification: June, the 6th of 2009
+ * 
+ *  This module provides common  primitives to catch exceptions and store them (with contextal information) in a stack
+ * 
+ * Copyright 2009,2010,2011 Institut National de Recherche en Informatique et   
+ * en Automatique.  All rights reserved.  This file is distributed     
+ * under the terms of the GNU Library General Public License *)
 
 open Exceptions
 

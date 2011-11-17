@@ -1,3 +1,9 @@
+PREF?= 
+VN:=$(shell cat tag/number)#            #Git version number for commit tag
+VERSION:=$(shell cat tag/version)#      #Major revision release number
+RELEASE:=$(shell cat tag/release)#      #Release number
+DATE:=`date +'%Y-%m-%d %H:%M:%S'`#      #date YYYY-MM-DD 
+
 all: metakappa_full
 
 metakappa_light: 
@@ -43,6 +49,7 @@ OCAMLINCLUDES= 	-I $(METAKAPPAREP)lib/$(TKREP) \
 		-I $(METAKAPPAREP)rename_rule \
 		-I $(METAKAPPAREP)pretty_printing \
 		-I $(METAKAPPAREP)frontend \
+		-I $(METAKAPPAREP)rename_and_dump \
 		$(TKINCLUDES) 
 
 OCAMLFLAGS=	$(OCAMLINCLUDES)
@@ -78,7 +85,8 @@ FIRST_OBJS = ./$(METAKAPPAREP)tools/map2.cmo \
 	./$(METAKAPPAREP)agent_interfaces/agent_interfaces.cmo \
 	./$(METAKAPPAREP)agent_tree/agent_tree.cmo \
 	./$(METAKAPPAREP)rename_agent/rename_agent.cmo \
-	./$(METAKAPPAREP)rename_rule/rename_rule.cmo 
+	./$(METAKAPPAREP)rename_rule/rename_rule.cmo \
+	./$(METAKAPPAREP)rename_and_dump/dump_on_line.cmo 
 
 OBJS = 	$(FIRST_OBJS) \
 	./$(METAKAPPAREP)frontend/meta_parse.cmo \
@@ -197,9 +205,51 @@ clean_all: clean
 grab_svn_version_number:
 	svn up | tail -n 1 | sed -e "s/\([^0-9]*\)\([0-9]*\)\./let svn_number = \2 +1/" > automatically_generated/svn_number.ml 
 
+
+fetch_version:
+	cd tag ; git pull 
+
+arch_object:
+
 commit:
-	make grab_svn_version_number
-	svn commit 
+	make fetch_version
+	echo -n `expr $(VN) + 1` > tag/number 
+	echo -n $(DATE) > tag/date 
+	make PREF="Not a release" send_caml
+
+major_version: 
+	make fetch_version
+	echo -n `expr $(VERSION) + 1` > tag/version
+	echo -n `expr $(VN) + 1`> tag/number 
+	echo -n 1 > tag/release
+	echo -n $(DATE) > tag/date 
+	make PREF="Release " send_caml
+
+release: 
+	make fetch_version
+	echo -n `expr $(RELEASE) + 1`> tag/release
+	echo -n `expr $(VN) + 1`> tag/number 
+	echo -n $(DATE) > tag/date 
+	make PREF="Release " send_caml
+
+send_caml: 
+	echo -n xxx$(VN)$(RELEASE)$(VERSION)$(DATE)xxx
+	echo -n let git_commit_version,git_commit_release,git_commit_tag,git_commit_date  = $(VERSION),$(RELEASE),$(VN),\"$(DATE)\" > automatically_generated/git_commit_info.ml 
+	git commit -a 
+	git tag -a $(VN)  -m "$(PREF) v$(VERSION).$(RELEASE)...$(VN) $(DATE)"  
+	git push --tags
+	git push 
+
+arch_object:
+	file $(BIN)/complx | perl -pe '$$uname = `uname -s`; chomp($$uname); s/^.*\s([0-9]*-bit).*$$/binaries\/plx_engine\/$$uname-$$1/g' > tag/arch_object
+
+upload:
+	# make release
+	make arch_object
+	support/s3sync/s3cmd.rb put plectix-deploy:$(shell cat tag/arch_object)/latest tag/number
+	support/s3sync/s3cmd.rb put plectix-deploy:$(shell cat tag/arch_object)/$(VN)/complx bin/complx
+	support/s3sync/s3cmd.rb put plectix-deploy:$(shell cat tag/arch_object)/$(VN)/simplx bin/simplx
+
 
 help: 
 	@echo Usage: ;\
@@ -211,3 +261,5 @@ help:
 	echo make clean: clean compiled files;\
 	echo make clean_data: clean analysis results;\
 	echo make clean_all: clean all	
+
+
