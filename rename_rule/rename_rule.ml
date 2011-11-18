@@ -5,7 +5,7 @@
  * Russ Harmer PPS (CNRS)
  * 
  * Creation: June, the 6th of 2009
- * Last Moification: June, the 6th of 2009
+ * Last Moification: November, the 18th of 2011
  * 
  * To apply substitution to rules 
  * 
@@ -97,14 +97,7 @@ let check_rule rule interface_database i log =
     rule.mod_right_hand_side,log  
     
 
-let rename_rule rule interface_database flagmap log = 
-  let fadd x (y:string list) (map:string list list StringListMap.t) = 
-    let (old:string list list) = 
-      try 
-	StringListMap.find x map 
-      with 
-	Not_found -> [] in 
-    StringListMap.add x (y::old) map in 
+let rename_rule rule interface_database flagmap (b1,b2) output log = 
   let rename l log = 
     let a,b = 
       List.fold_left 
@@ -161,12 +154,21 @@ let rename_rule rule interface_database flagmap log =
 			  mod_left_hand_side = List.rev left ;
 			  mod_right_hand_side = List.rev right } 
 		     in
-		     let _ = Pretty_printing.print_rule stdout rule' in 
-(*
-		     fadd 
-		       (rule.flag: string list)
-		       (flag':string list)
-		       flags*) (liste,flags) )
+		     let _ = Pretty_printing.print_rule output rule' in 
+		     let _ = 
+		    if b1
+		    then 
+		      let _ = Printf.fprintf output "%sobs: '" "%"in 
+		      let _ = List.iter (Printf.fprintf output "%s") (List.rev flag') in
+		      let _ = Printf.fprintf output "'\n" in ()
+		  in 
+		  let _ = 
+		    if b2
+		    then 
+		      let _ = Printf.fprintf output "%sstory: '" "%"in 
+                      let _ = List.iter (Printf.fprintf output "%s") (List.rev flag') in
+		      let _ = Printf.fprintf output "'\n" in ()
+		  in (liste,flags))
 		  liste 
 		  mod_right_hand_side')
 	     liste 
@@ -199,43 +201,18 @@ let check_model line (interface_database:declaration) log =
   | RULE_L _ -> failwith "INTERNAL ERROR"
   | PREPROCESSED_RULE (_,y,i) -> check_rule y interface_database i log
 
-let transform_model line interface_database (tail,flagset) log = 
-  match line with 
-    INIT_L _  
-  | OBS_L _ 
-  | STORY_L _ 
-  | DONT_CARE_L _ 
-  | GEN_L _ 
-  | COMMENTED_RULE_L _ 
-  | CONC_L _ -> (line::tail,flagset),log
-  | PREPROCESSED_RULE (x,rule,i) -> 
-      let (a,b),log = rename_rule rule interface_database flagset log in 
-      (List.fold_left 
-	(fun sol l -> PREPROCESSED_RULE (x,l,i)::sol)
-	(if StringListMap.fold 
-           (fun x y bool -> bool & y=[x])
-           b true 
-         then 
-           tail 
-         else COMMENTED_RULE_L(rule,i)::tail)
-	a
-	,b),log
-  | RULE_L _  -> failwith "INTERNAL ERROR"
-
-let rename_obs rule flagset list log = 
-  match rule with 
-    INIT_L _ | DONT_CARE_L _ | GEN_L _ | CONC_L _ | RULE_L _ | COMMENTED_RULE_L _ | PREPROCESSED_RULE _ -> rule::list,log
-  | OBS_L (s,a,i) ->
-      (try 
-	let l = StringListMap.find s flagset in
-	List.fold_left 
-	  (fun sol l -> (OBS_L(l,a,i))::sol)
-	  list l 
-      with Not_found -> (rule::list)),log
-  | STORY_L (s,a,i) ->  
-      (try 
-	let l = StringListMap.find s flagset in
-	List.fold_left 
-	  (fun sol l -> STORY_L(l,a,i)::sol)
-	  list l 
-      with Not_found -> rule::list),log
+let rename_obs rule flagset log = 
+  let get_old s flagset = 
+    try 
+      StringListMap.find s flagset 
+    with 
+	Not_found -> []
+  in 
+  let add_old s line flagset = 
+    let old = get_old s flagset in 
+      StringListMap.add s (line::old) flagset
+  in 
+    match rule with 
+	INIT_L _ | DONT_CARE_L _ | GEN_L _ | CONC_L _ | RULE_L _ | COMMENTED_RULE_L _ | PREPROCESSED_RULE _ -> flagset,log 
+      | OBS_L (s,a,i) | STORY_L(s,a,i) ->
+	  add_old s rule flagset,log

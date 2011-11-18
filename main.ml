@@ -49,33 +49,20 @@ let decl,log =
 let decl,log = Agent_tree.complete decl log
 let subs,log = Agent_tree.convert_declaration_into_solved_definition decl log
 let _ = if trace () then Agent_tree.print_macro_tree print_handler_error subs 
-let flags = () 
-(*let (rules,flags),log  = 
+let flags,log = 
   List.fold_left 
-    (fun (model,log) rule -> 
-      Rename_rule.transform_model 
-	rule
-	subs
-	model 
-        log )
-    (([],StringListMap.empty),log)
-    rules 
-let rules,log = 
-  List.fold_left 
-    (fun (model,log) rule -> Rename_rule.rename_obs 
-       rule 
-	 flags 
-	   model 
-	   log)
-    ([],log)
-    rules
-let log = Pretty_printing.print_model stdout rules log*)
-let log = Dump_on_line.rename_and_dump 
+    (fun (flags,log) rule -> 
+       Rename_rule.rename_obs 
+	 rule 
+	 flags  log)
+    (Data_structures_metakappa.StringListMap.empty,log)
+    rules  
+let _ = Dump_on_line.rename_and_dump 
   stdout 
   rules 
   subs 
   flags 
-  log 
+  ()
 let _ = dump_computation_steps stderr log 
 let _ = dump_messages stderr log 
 

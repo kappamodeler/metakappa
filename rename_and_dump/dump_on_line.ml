@@ -5,7 +5,7 @@
  * Russ Harmer PPS (CNRS)
  * 
  * Creation: Nov, the 17th of 2011
- * Last Moification: Nov, the 17th of 2011 
+ * Last Moification: Nov, the 18th of 2011 
  * 
  * Expand rules and dump the model in the same time
  * 
@@ -34,16 +34,41 @@ let rename_and_dump output model subs flagset log =
 		let _ = Printf.fprintf output "#";print_rule output y in log
 	    | PREPROCESSED_RULE (x,rule,i) -> 
 		begin
-		  Printf.fprintf output "#";print_rule output rule;
-		  let (a,b),log = Rename_rule.rename_rule rule subs flagset log in 
-		     log 
-		end
-	   |	OBS_L (x,_,_) -> 
-		  let _ = Printf.fprintf output "%sobs: '" "%"in 
+		  let _ = Printf.fprintf output "#";print_rule output rule in 
+		  let list = 
+		    try
+		      StringListMap.find rule.flag flagset 
+		    with 
+			Not_found -> []
+		  in  
+		  let rec vide l (log,b1,b2) = 
+		      match l 
+		      with [] -> (log,b1,b2)
+			| t::q -> 
+			    match t 
+			    with 
+			      | OBS_L _ ->
+				  if b1 then vide q (log,b1,b2)
+				  else 
+				    if b2 then (log,true,b2)
+				    else vide q (log,true,b2)
+			      | STORY_L _ ->
+				  if b2 then vide q (log,b1,b2)
+				  else
+				    if b1 then (log,b1,true)
+				    else vide q (log,b1,true)
+			      | _ -> vide q (log,b1,b2)
+		  in 
+		  let log,b1,b2 = vide list (log,false,false) in
+		  let _,log = Rename_rule.rename_rule rule subs flagset (b1,b2) output log in 
+		    log
+		end 
+	    |	OBS_L (x,_,_) -> 
+		  let _ = Printf.fprintf output "#%sobs: '" "%"in 
                   let _ = List.iter (Printf.fprintf output "%s") (List.rev x) in
 		  let _ = Printf.fprintf output "'\n" in log
-	   |	STORY_L (x,_,_) ->
-		  let _ = Printf.fprintf output "%sstory: '" "%"in 
+	    |	STORY_L (x,_,_) ->
+		  let _ = Printf.fprintf output "#%sstory: '" "%"in 
                   let _ = List.iter (Printf.fprintf output "%s") (List.rev x) in
 		  let _ = Printf.fprintf output "'\n" in log
       )
